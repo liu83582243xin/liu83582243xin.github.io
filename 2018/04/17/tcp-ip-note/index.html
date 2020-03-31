@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <title>TCP/IP 笔记 | Xiangxin</title>
+  <meta name="description" content>
+  <meta name="keywords" content>
+  <meta name="HandheldFriendly" content="True">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="shortcut icon" href="/">
+  <link rel="alternate" href="/atom.xml" title="Xiangxin">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="最近又重温了TCP/IP的知识，果然比第一次看的时候有感悟多了，那就写一点东西来总结一下。">
+<meta name="keywords" content="tcp&#x2F;ip,networking">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TCP&#x2F;IP 笔记">
+<meta property="og:url" content="http://lxyzk.github.io/2018/04/17/tcp-ip-note/index.html">
+<meta property="og:site_name" content="Xiangxin">
+<meta property="og:description" content="最近又重温了TCP/IP的知识，果然比第一次看的时候有感悟多了，那就写一点东西来总结一下。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://static.zybuluo.com/lxyzk/bfmo5pfpdp8olbc0bjacyyad/UDP%E5%A4%B4%E9%83%A8%E6%A0%BC%E5%BC%8F.PNG">
+<meta property="og:image" content="http://static.zybuluo.com/lxyzk/d4hc6uj75kixb0yq1odxc35b/TCP%E6%95%B0%E6%8D%AE%E5%8C%85%E6%A0%BC%E5%BC%8F.PNG">
+<meta property="og:image" content="http://static.zybuluo.com/lxyzk/fk384ptm9shlrofn0l6yci33/Connection_TCP.png">
+<meta property="og:image" content="http://static.zybuluo.com/lxyzk/q53umfysakatjhb3zuurezvj/Deconnection_TCP.png">
+<meta property="og:image" content="http://static.zybuluo.com/lxyzk/tf4dbqv6gqm0lqj4069t2n82/TCP_DataFlow.PNG">
+<meta property="og:updated_time" content="2020-03-28T14:14:38.838Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="TCP&#x2F;IP 笔记">
+<meta name="twitter:description" content="最近又重温了TCP/IP的知识，果然比第一次看的时候有感悟多了，那就写一点东西来总结一下。">
+<meta name="twitter:image" content="http://static.zybuluo.com/lxyzk/bfmo5pfpdp8olbc0bjacyyad/UDP%E5%A4%B4%E9%83%A8%E6%A0%BC%E5%BC%8F.PNG">
+
+  <link rel="shortcut icon" href>
+  <link rel="icon" href>
+  <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Inconsolata|Titillium+Web" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Roboto+Mono" rel="stylesheet">
+  <link href="https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/node-waves/0.7.5/waves.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <script>
+    function setLoadingBarProgress(num) {
+      document.getElementById('loading-bar').style.width=num+"%";
+    }
+  </script>
+</head>
+</html>
+<body>
+  <div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+
+  <script>setLoadingBarProgress(20)</script>
+  <header class="l_header">
+	<div class='wrapper'>
+		<div class="nav-main container container--flex">
+			<a class="logo flat-box" href='/' >
+				<!-- <i class="fa fa-home"></i> -->
+				Xiangxin
+			</a>
+
+				<div class='menu'>
+					<ul class='h-list'>
+						
+							<li>
+								<a class='flat-box nav-home' href='/'>
+									<i class="fa fa-rss"></i>
+									博客
+								</a>
+							</li>
+						
+							<li>
+								<a class='flat-box nav-archives' href='/archives'>
+									<i class="fa fa-archive"></i>
+									归档
+								</a>
+							</li>
+						
+					</ul>
+					<div class='underline'></div>
+				</div>
+
+			
+				<div class="m_search">
+					<form name="searchform" class="form u-search-form">
+						<input type="text" class="input u-search-input" placeholder="Search" />
+						<span class="icon"><i class="fa fa-search"></i></span>
+					</form>
+				</div>
+			
+			<ul class='switcher h-list'>
+				
+					<li class='s-search'><a href='javascript:void(0)'><i class="fa fa-search flat-box"></i></span></a></li>
+				
+				<li class='s-menu'><a href='javascript:void(0)'><i class="fa fa-navicon flat-box"></i></a></li>
+			</ul>
+		</div>
+
+		<div class='nav-sub container container--flex'>
+			<a class="logo" class="flat-box" href='javascript:void(0)'>
+				xaoxuu
+			</a>
+
+			<ul class='switcher h-list'>
+				<li class='s-comment'><a href='javascript:void(0)'><i class="fa fa-comments flat-box"></i></a></li>
+				<li class='s-top'><a href='javascript:void(0)'><i class="fa fa-arrow-up flat-box"></i></a></li>
+				<li class='s-toc'><a href='javascript:void(0)'><i class="fa fa-list-ul flat-box"></i></a></li>
+			</ul>
+		</div>
+	</div>
+</header>
+	<aside class="menu-phone">
+        <div class="header">Xiangxin</div>
+		<nav>
+			
+				<a href="/" class="nav-home nav">
+					<i class="fa fa-rss"></i>
+					博客
+				</a>
+			
+				<a href="/archives" class="nav-archives nav">
+					<i class="fa fa-archive"></i>
+					归档
+				</a>
+			
+		</nav>
+	</aside>
+
+    <script>setLoadingBarProgress(40);</script>
+  <div class="l_body">
+    <div class='container clearfix'>
+      <div class='l_main'>
+        <article id="post-tcp-ip-note" class="post white-box article-type-post" itemscope itemprop="blogPost">
+    <section class='meta'>
+        <h1 class="title">
+            
+                TCP/IP 笔记
+            
+        </h1>
+        <time>
+            2018-04-17 星期二&nbsp;&nbsp;
+            <i class="fa fa-eye" aria-hidden="true"></i>&nbsp;<span id="busuanzi_value_page_pv"><i class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></i></span>
+        </time>
+        
+    
+    <div class='cats'>
+        <a href="/categories/networking/">networking</a>
+    </div>
+
+
+    </section>
+
+    <section class="article typo">
+
+        <div class="article-entry" itemprop="articleBody">
+            <p>最近又重温了TCP/IP的知识，果然比第一次看的时候有感悟多了，那就写一点东西来总结一下。</p>
+<a id="more"></a>
+<h2 id="网络模型"><a href="#网络模型" class="headerlink" title="网络模型"></a>网络模型</h2><p>现在我们主要了解计算机网络的两种模型：OSI模型和TCP/IP模型。需要注意的是由于OSI模型过于复杂导致难以实现，因此导致TCP/IP模型更早地应用在现实中。这也使得TCP/IP模型成为事实上的标准，而OSI仅仅是纸面上的标准。</p>
+<p>在OSI模型中，将计算机网络分成了7层，而在TCP/IP模型中则分成了4层，其各层对应关系如下表所示：</p>
+<table><br>    <tr><br>        <td>OSI</td><br>        <td>TCP/IP</td><br>        <td>对应网络协议</td><br>        <td>所在位置</td><br>    </tr><br>    <tr><br>        <td>应用层</td><br>        <td rowspan="3">应用层</td><br>        <td>TFTP, FTP, NFS, WAIS</td><br>        <td rowspan="4">主机</td><br>    </tr><br>    <tr><br>        <td>表示层</td><br>        <td>Telnet, Rlogin, SNMP, Gopher</td><br>    </tr><br>    <tr><br>        <td>会话层</td><br>        <td>SMTP, DNS</td><br>    </tr><br>    <tr><br>        <td>传输层</td><br>        <td>传输层</td><br>        <td>TCP, UDP</td><br>    </tr><br>    <tr><br>        <td>网络层</td><br>        <td>网际层</td><br>        <td>IP, ICMP, ARP, RARP, AKP, UUCP</td><br>        <td rowspan="3">媒介</td><br>    </tr><br>    <tr><br>        <td>数据链路层</td><br>        <td rowspan="2">网络接口层</td><br>        <td>FDDI, Ethernet, Arpanet, PDN, SLIP, PPP</td><br>    </tr><br>    <tr><br>        <td>物理层</td><br>        <td>IEEE 802.1A, IEEE 802.2到IEEE 802.11</td><br>    </tr><br></table>
+
+
+<h2 id="UDP与TCP协议"><a href="#UDP与TCP协议" class="headerlink" title="UDP与TCP协议"></a>UDP与TCP协议</h2><p>在整个计算机网络体系中，最核心的当属是位于传输层的TCP与UDP协议了。因为他们位于主机协议栈的最底层，向上方应用层提供不同的数据交付方式。</p>
+<p>因为UDP协议相对TCP协议来说相对简单，就先回顾一下UDP协议。</p>
+<h3 id="UDP协议"><a href="#UDP协议" class="headerlink" title="UDP协议"></a>UDP协议</h3><h4 id="特点"><a href="#特点" class="headerlink" title="特点"></a>特点</h4><p>UDP的全称也叫做用户数据报协议（User Datagram Protocal），它有以下几个值得注意的特点：</p>
+<ol>
+<li>UDP不能保证可靠传输，也就更不能保证所发送的数据的到达顺序，它所实现的是尽最大的努力交付。</li>
+<li>UDP是面向数据报文的、无连接的协议，因此它的开销低并且发送器前的时延小（因为不用建立连接啊），面向报文也使得IP层在传输UDP协议的报文时既不会拆分也不会合并。</li>
+<li>UDP可以支持一对一、一对多、多对一、多对多的通信。</li>
+<li>UDP没有拥塞控制功能，它的发送速率不会随着网络出现的拥塞而降低，所以它的实时性较好。这也是许多视频聊天应用采用它的原因。</li>
+</ol>
+<h4 id="报文格式"><a href="#报文格式" class="headerlink" title="报文格式"></a>报文格式</h4><p>如下是UDP报文头部格式<br><img src="http://static.zybuluo.com/lxyzk/bfmo5pfpdp8olbc0bjacyyad/UDP%E5%A4%B4%E9%83%A8%E6%A0%BC%E5%BC%8F.PNG" alt="UDP头部格式"></p>
+<p>其中从1到8字节分别是来源端口号、目的端口号、报文长度、检验和，每个字段各占两字节。</p>
+<p>UDP的通信方式较为简单，发送端发送完一个报文继续发送下一个，待将所有报文发送完毕通信就结束了。</p>
+<p>接收方也是如此。</p>
+<h3 id="TCP协议"><a href="#TCP协议" class="headerlink" title="TCP协议"></a>TCP协议</h3><p>传输控制协议（英语：Transmission Control Protocol，缩写为 TCP）是一种面向连接的、可靠的、基于字节流的传输层通信协议。</p>
+<p>TCP协议所要实现的功能是端到端之间的可靠传输，因此，相较于UDP协议而言，TCP协议要复杂的多。</p>
+<h4 id="特点-1"><a href="#特点-1" class="headerlink" title="特点"></a>特点</h4><p>相对于UDP协议，TCP协议有下面的几个特点：</p>
+<ol>
+<li>TCP协议保证可靠传输，也就是说发送的数据是什么样，接收的数据也是什么样。</li>
+<li>TCP协议是有连接的、面向数据流的协议。有连接是说数据传送前通信双方需要建立连接、通信完毕后需要断开连接，不过这里所提到的连接都是逻辑上的连接。面向数据流的意思是说发送方应用程序发送的数据是什么顺序，接收方应用读取的接收到的数据也是什么顺序。</li>
+<li>TCP协议提供的是端到端的通信，也就是说一条TCP连接只能提供一对一的通信。不过，一个应用可以同时建立多条TCP连接来实现与多个目标的通信。</li>
+<li>TCP协议提供拥塞控制功能，会在网络状况良好的情况下适当提高发送/接收速率，反之则适当降低发送/接收速率。这样，将会提高对网络的利用率。</li>
+</ol>
+<p>此外，还需要注意的是，TCP提供的是<strong>全双工</strong>的通信。</p>
+<h4 id="数据封包格式"><a href="#数据封包格式" class="headerlink" title="数据封包格式"></a>数据封包格式</h4><p>要理解TCP协议中各功能的实现，要先从TCP的数据封包结构开始。</p>
+<p>下面的图片就是TCP数据封包的结构示意图：</p>
+<p><img src="http://static.zybuluo.com/lxyzk/d4hc6uj75kixb0yq1odxc35b/TCP%E6%95%B0%E6%8D%AE%E5%8C%85%E6%A0%BC%E5%BC%8F.PNG" alt="TCP数据包格式"></p>
+<p>各个字段功能如下：</p>
+<ol>
+<li>来源端口（2字节）：标识来源端口号。</li>
+<li>目的端口（2字节）：标识目的端口号。</li>
+<li>序列号码（4字节）：表明此封包在字节流中的顺序号。因为TCP是面向字节流的协议，需要保证最终的数据顺序与发送方发送的顺序一致，所以需要这个字段来表明该封包在字节流中的位置。</li>
+<li>确认号码（4字节）：对此前按顺序收到的最后一个封包的序列号码的确认。<br>例如：当<strong>33</strong>号以前的封包都已经完整的到达了后，就向发送方发送确认号码为<strong>34</strong>（确认的封包号码+1）来告诉发送方：33号以前的所有封包我都已经收到了，可以向我发送34号封包了。<br>这里要注意： 如果收到了34、35、37号封包而未收到36号封包，则向发送端发送确认号为35的封包。<blockquote>
+<p>总之要记住，确认号=N，表示N-1及其之前的封包都已经收到。</p>
+</blockquote>
+</li>
+<li>报头长度（1字节）：指示报文头部的长度。<br>但是需要注意，这里的单位是<strong>4字节</strong>。例如，这个属性的值是15的话则说明报文头部的长度是60(15*4)字节。</li>
+<li>保留字段(10位)：暂时没打算好干啥用，一律置0。</li>
+<li>标识符（6位）：每个比特位分别表示如下标识符：<br>URG—为1表示高优先级数据包，紧急指针字段有效。<br>ACK—为1表示确认号字段有效。TCP规定连接建立后，所有传送的报文段都必须把该字段置为1。<br>PSH—为1表示是带有PUSH标志的数据，指示接收方应该尽快将这个报文段交给应用层而不用等待缓冲区装满。<br>RST—为1表示出现严重差错。可能需要重现创建TCP连接。还可以用于拒绝非法的报文段和拒绝连接请求。<br>SYN—为1表示这是连接请求或是连接接受请求，用于创建连接和使顺序号同步<br>FIN—为1表示发送方没有数据要传输了，要求释放连接。</li>
+<li>窗口（2字节）:表示从确认号开始，本报文的源方可以接收的字节数，即源方接收窗口大小。用于流量控制。</li>
+<li>校验和（2字节）对整个的TCP报文段，包括TCP头部和TCP数据，以16位字进行计算所得。这是一个强制性的字段。</li>
+<li>紧急指针（2字节）：本报文段中的紧急数据的最后一个字节的序号。</li>
+<li>选项字段（最多40字节）：每个选项的开始是1字节的kind字段，说明选项的类型。</li>
+</ol>
+<p> 其中上面的3、4、7、8是重点。</p>
+<h4 id="超时重传"><a href="#超时重传" class="headerlink" title="超时重传"></a>超时重传</h4><p>为了搞明白下面要说的TCP的一些机制，首先需要知道TCP协议能够实现可靠传输的一个基本的原理–超时重传。</p>
+<p>说来很简单，其实就是收到当接收方收到一个数据封包的时候就向发送方发送一个确认数据封包。而当发送方发送完一个数据封包经过一段时间没有收到接收方的确认封包时，就会将上一个封包再次向接收方发送一次。</p>
+<p>当然，TCP中真正的机制比这个要复杂的多，但是基于的原理都是一样的。</p>
+<h4 id="TCP连接管理"><a href="#TCP连接管理" class="headerlink" title="TCP连接管理"></a>TCP连接管理</h4><p>在说TCP连接之前先插播一个小故事。</p>
+<blockquote>
+<p>说是有一天，一个程序员到酒吧去喝酒，于是跟服务员之间发生了如下的对话。<br>程序员：我要一瓶酒。<br>服务员：你确定你要一瓶酒？<br>程序员：我确定我要一瓶酒。<br>于是服务员就给了程序员一瓶酒。</p>
+</blockquote>
+<p>是不是很罗嗦？没错，这就是典型的TCP连接建立的过程。如下面的图：</p>
+<p><img src="http://static.zybuluo.com/lxyzk/fk384ptm9shlrofn0l6yci33/Connection_TCP.png" alt="Connection_TCP"></p>
+<p>图中的小人就是客户端，另一边不用说也知道就是服务器端。图中画的比较简略，大概过程是下面这样：</p>
+<blockquote>
+<p>下面过程中，ACK表示上面说的TCP包头中的确认标识，ack表示确认号(4字节那个)。</p>
+</blockquote>
+<ol>
+<li>客户端向服务器发送建立连接请求数据包，其中包头内容SYN=1，seq=x（自己随机挑选的起始序号）。（我要一瓶酒）</li>
+<li>服务器收到请求后，如果同意建立连接，就向客户端发送同意建立连接请求数据封包，其包头内容SYN=1,ACK=1,ack=x+1(还记得为什么吗),seq=y（同样也是自己随机挑选的）。（你确定你要一瓶酒吗）</li>
+<li>客户端收到服务器发来的确认请求后，也向服务器发送确认封包，其内容ACK=1，ack=y+1(原理同上),seq=x+1（毕竟已经发送过seq=x的封包了），随后客户端就进入连接建立状态，而服务器就在收到这个确认封包后也进入连接建立状态。（我确定我要一瓶酒）</li>
+</ol>
+<p>以上步骤就是俗称的“TCP三次握手”。</p>
+<p>当然，最初的时候服务器肯定是处于监听状态啦，要不然怎么能够对客户端的数据封包做出回应呢。</p>
+<p>要注意的是，这里有个很经典的问题就是为什么在收到服务器的确认封包后还要再向服务器发送一个确认封包呢？</p>
+<p>这主要是因为TCP协议的下层网络是不可靠的，也就是说数据封包可能丢失也可能滞留在某个节点很长时间。</p>
+<p>所以这就有一种可能就是客户端发送给服务器的封包在网络中滞留了，这样客户端当然也就不会收到服务器发来的确认封包。还记得TCP有个超时重传机制吗？没错，这个时候客户端是以为自己发出去的封包在网络中是丢了的，于是过一段时间又会重传刚才的封包。</p>
+<p>幸运的是，这次重传的封包十分顺利的到达了服务器，于是服务器也十分顺利的向客户端发出了确认封包。本来就要愉快的建立连接了，可是天有不测风云，刚才滞留的请求封包此时到达了服务器这里。</p>
+<p>这个时候服务器就懵了，这到底是客户端又要跟我建立一次连接还是刚才滞留的封包又给了我呢？</p>
+<p>于是这个时候就需要客户端再发送一个确认封包给服务器了。</p>
+<p>当然，有连接建立，就有连接释放，客户端与服务器之间的连接释放过程大概是下面这个样子的。</p>
+<p><img src="http://static.zybuluo.com/lxyzk/q53umfysakatjhb3zuurezvj/Deconnection_TCP.png" alt="Deconnection_TCP"></p>
+<p>跟建立连接的时候差不多，大概过程大概向下面这样：</p>
+<ol>
+<li>客户端向服务器发送连接请求释放封包，封包内容为FIN=1，seq=u。</li>
+<li>服务器收到后，决定要跟客户端释放连接，可是还有数据没传送完啊，就先发一个封包告诉客户端我可以释放连接，你可以不用向我发送数据了，可是我还有数据没有传送完，所以在我告诉你结束之前你得一直接收我的数据（别忘了，TCP可是全双工的）。所以所发送封包内容为：ACK=1，ack=u+1,seq=v。（FIN=0表示我还有数据要发送）</li>
+<li>服务器发送完数据后，告诉客户端我都发送完了，可以结束了。于是发送封包为FIN=1，ACK=1，ack=u+1(这里得注意啦)，seq=w（中间还传输过数据，所以可能不是v+1）。</li>
+<li>客户端收到服务器的确认后，再次向服务器发送确认，内容是ACK=1，ack=w+1，seq=u+1。</li>
+<li>发送完上面的确认封包后，客户端再等一段时间（2MSL）后，就断开连接。至此，连接正常释放。</li>
+</ol>
+<p>如上步骤就是俗称的“TCP4次挥手”。</p>
+<p>这里之所以是4次，主要是与建立连接时相比，服务器的确认和结束被分成了两个封包分别发送了出去。</p>
+<p>当然，这里也有个比较经典的问题就是客户端为什么在发送完最后一个封包后还要再等待一段时间？</p>
+<p>这里也主要是因为TCP协议下层的网络并不是很可靠，有可能客户端发出的最后一个封包在路上丢了而导致服务器等待很长世间浪费服务器资源。于是就让客户端再等待一段时间，这样当服务器收不到客户端发来的确认封包时，还会再重传一个连接结束封包，此时的客户端再次受到这个连接结束封包后还可以再重传一次确认封包来让服务器正常结束连接。这样，就不会白白浪费服务器资源了。</p>
+<h2 id="一个数据包的旅程"><a href="#一个数据包的旅程" class="headerlink" title="一个数据包的旅程"></a>一个数据包的旅程</h2><p>最后，再从整个网络的范围来看，一个数据封包到底是要经过怎样的旅程才会从出发地到达目的地呢？</p>
+<p>以TCP协议为例，当TCP协议接到上层应用层交付下来的数据封包后，就在这个数据封包的前面加上TCP的头部。</p>
+<p>然后，再交付给下层的网络层。</p>
+<p>网络层接收到上层传输层传递下来的封包后，就在封包的头部加上IP协议的头部和网际接口层的首部和头部后经过层层路由，最终到达距离目的主机最近的路由器。</p>
+<p>然后距离目的主机最近的路由器再对数据包进行解包，去掉网际接口层和网络层的封装后将数据包送到目的主机的传输层（TCP接收缓冲池），再由目的主机的传输层交给上层的应用层。</p>
+<p>一图以蔽之：</p>
+<p><img src="http://static.zybuluo.com/lxyzk/tf4dbqv6gqm0lqj4069t2n82/TCP_DataFlow.PNG" alt="TCP_DataFlow.PNG"></p>
+<h2 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h2><p><a href="https://zh.wikipedia.org/wiki/TCP/IP%E5%8D%8F%E8%AE%AE%E6%97%8F" target="_blank" rel="noopener">维基百科-TCP/IP协议簇</a><br><a href="https://zh.wikipedia.org/wiki/%E7%94%A8%E6%88%B7%E6%95%B0%E6%8D%AE%E6%8A%A5%E5%8D%8F%E8%AE%AE" target="_blank" rel="noopener">维基百科-用户数据报协议</a><br><a href="https://zh.wikipedia.org/wiki/%E4%BC%A0%E8%BE%93%E6%8E%A7%E5%88%B6%E5%8D%8F%E8%AE%AE" target="_blank" rel="noopener">维基百科-传输控制协议</a></p>
+
+        </div>
+
+        
+            <div class="article-tags tags">
+                
+                    <a href="/tags/tcp-ip/"><i class="fa fa-tag"></i>&nbsp;&nbsp;tcp/ip</a>
+                
+                    <a href="/tags/networking/"><i class="fa fa-tag"></i>&nbsp;&nbsp;networking</a>
+                
+            </div>
+        
+
+        
+            <div class="art-item-footer">
+                
+                    <span class="art-item-left">
+                        <i class="fa fa-chevron-left" aria-hidden="true"></i>&nbsp;
+                        <a href="/2018/08/25/raspberry-pi-aria/" rel="prev" title="在树莓派上配置下载机">
+                            在树莓派上配置下载机
+                        </a>
+                    </span>
+                
+                
+                    <span class="art-item-right">
+                        <a href="/2018/04/17/tcp-ip-congestion-control/" rel="next" title="TCP/IP 拥塞控制">
+                            TCP/IP 拥塞控制
+                        </a>&nbsp;
+                        <i class="fa fa-chevron-right" aria-hidden="true"></i>
+                    </span>
+                
+            </div>
+        
+
+    </section>
+
+</article>
+
+<br>
+
+<!-- 显示推荐文章和评论 -->
+
+    <article class="post white-box article-type-post>">
+        <section class="article typo">
+
+            
+                
+
+    <div class="recommended_posts">
+        <h4><i class="fa fa-bookmark" aria-hidden="true"></i>&nbsp;&nbsp;&nbsp;你可能感兴趣的文章</h4>
+        <ul>
+            
+                <li><a href="http://lxyzk.github.io/2019/05/28/compile_vim_debian/">Debian源码安装Vim</a></li>
+            
+                <li><a href="http://lxyzk.github.io/2018/08/25/raspberry-pi-aria/">在树莓派上配置下载机</a></li>
+            
+                <li><a href="http://lxyzk.github.io/2018/04/17/tcp-ip-congestion-control/">TCP/IP 拥塞控制</a></li>
+            
+                <li><a href="http://lxyzk.github.io/2018/04/16/first-post/">First Post</a></li>
+            
+                <li><a href="http://lxyzk.github.io/2018/04/16/hello-world/">Hello World</a></li>
+            
+        </ul>
+    </div>
+    <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+
+
+            
+
+            
+
+                
+
+                
+
+                
+            
+
+        </section>
+    </article>
+
+
+<script>
+    window.subData = {
+        title: 'TCP/IP 笔记',
+        tools: true
+    }
+</script>
+
+
+      </div>
+      <aside class='l_side'>
+        
+  <section class='m_widget categories'>
+<div class='header'><i class="fa fa-sitemap" aria-hidden="true"></i>&nbsp;&nbsp;分类</div>
+<div class='content'>
+    
+    <ul class="entry">
+    
+        <li><a class="flat-box" href="/categories/Vim/"><div class='name'>Vim</div><div class='badge'>1</div></a></li>
+    
+        <li><a class="flat-box" href="/categories/iOS/"><div class='name'>iOS</div><div class='badge'>2</div></a></li>
+    
+        <li><a class="flat-box" href="/categories/networking/"><div class='name'>networking</div><div class='badge'>2</div></a></li>
+    
+        <li><a class="flat-box" href="/categories/折腾/"><div class='name'>折腾</div><div class='badge'>1</div></a></li>
+    
+    </ul>
+    
+</div>
+</section>
+
+
+  
+<section class="m_widget tagcloud">
+    <div class="header"><i class="fa fa-tags" aria-hidden="true"></i>&nbsp;&nbsp;标签</div>
+    <div class='content'>
+        <a href="/tags/lua/" style="font-size: 14px; color: #999">+lua</a> <a href="/tags/Aria2/" style="font-size: 14px; color: #999">Aria2</a> <a href="/tags/Debian/" style="font-size: 14px; color: #999">Debian</a> <a href="/tags/Docker/" style="font-size: 14px; color: #999">Docker</a> <a href="/tags/NSURLProtol/" style="font-size: 14px; color: #999">NSURLProtol</a> <a href="/tags/Raspberry/" style="font-size: 14px; color: #999">Raspberry</a> <a href="/tags/Vim/" style="font-size: 14px; color: #999">Vim</a> <a href="/tags/iOS/" style="font-size: 14px; color: #999">iOS</a> <a href="/tags/ios/" style="font-size: 14px; color: #999">ios</a> <a href="/tags/network/" style="font-size: 14px; color: #999">network</a> <a href="/tags/networking/" style="font-size: 24px; color: #555">networking</a> <a href="/tags/tcp-ip/" style="font-size: 24px; color: #555">tcp/ip</a> <a href="/tags/upload/" style="font-size: 14px; color: #999">upload</a> <a href="/tags/xcode/" style="font-size: 14px; color: #999">xcode</a>
+    </div>
+</section>
+
+
+
+  
+    <section class="m_widget toc-wrapper">
+        <div class="header"><i class="fa fa-list" aria-hidden="true"></i>&nbsp;&nbsp;目录</div>
+        <div class='content'>
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#网络模型"><span class="toc-text">网络模型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#UDP与TCP协议"><span class="toc-text">UDP与TCP协议</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#UDP协议"><span class="toc-text">UDP协议</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#特点"><span class="toc-text">特点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#报文格式"><span class="toc-text">报文格式</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#TCP协议"><span class="toc-text">TCP协议</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#特点-1"><span class="toc-text">特点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#数据封包格式"><span class="toc-text">数据封包格式</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#超时重传"><span class="toc-text">超时重传</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#TCP连接管理"><span class="toc-text">TCP连接管理</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#一个数据包的旅程"><span class="toc-text">一个数据包的旅程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考链接"><span class="toc-text">参考链接</span></a></li></ol>
+        </div>
+    </section>
+
+
+
+
+      </aside>
+      <script>setLoadingBarProgress(60);</script>
+    </div>
+  </div>
+  <footer id="footer" class="clearfix">
+    <div class="social-wrapper">
+      
+        
+            <a href="mailto:lxyzk_sg@foxmail.com" class="social envelope"
+                target="_blank" rel="external">
+            <i class="fa fa-envelope"></i>
+            </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <br>
+    <div>博客内容遵循 <a target="_blank" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="licenses">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></div>
+    <div>本站使用 <a href="https://github.com/xaoxuu/hexo-theme-material-x" target="_blank" class="codename">Material-X</a> 作为主题，
+		总访问量为 <span id="busuanzi_value_site_pv"><i class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></i></span> 次。
+    </div>
+
+</footer>
+<!-- 根据页面mathjax变量决定是否加载MathJax数学公式js -->
+
+
+  <script>setLoadingBarProgress(80);</script>
+  <script src="//apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+<script src='//cdn.bootcss.com/node-waves/0.7.5/waves.min.js'></script>
+<script src="//cdn.bootcss.com/scrollReveal.js/3.3.2/scrollreveal.min.js"></script>
+<!-- 访问统计 -->
+<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+<script>
+var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+var ALGOLIA_API_KEY = "";
+var ALGOLIA_APP_ID = "";
+var ALGOLIA_INDEX_NAME = "";
+var AZURE_SERVICE_NAME = "";
+var AZURE_INDEX_NAME = "";
+var AZURE_QUERY_KEY = "";
+var BAIDU_API_ID = "";
+var SEARCH_SERVICE = "hexo";
+var ROOT = "/"||"/";
+if(!ROOT.endsWith('/'))ROOT += '/';
+</script>
+<script src="/js/search.js"></script>
+<script src="/js/app.js"></script>
+
+
+    
+    
+    
+
+
+  <script>setLoadingBarProgress(100);</script>
+</body>
+</html>

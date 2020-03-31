@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Xiangxin</title>
+  
+  
+  <link href="/atom.xml" rel="self"/>
+  
+  <link href="http://lxyzk.github.io/"/>
+  <updated>2020-03-28T14:14:38.838Z</updated>
+  <id>http://lxyzk.github.io/</id>
+  
+  <author>
+    <name>刘相鑫</name>
+    
+  </author>
+  
+  <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>URLProtocol导致上传进度回调丢失排查过程</title>
+    <link href="http://lxyzk.github.io/2020/01/02/ns-url-protocol/"/>
+    <id>http://lxyzk.github.io/2020/01/02/ns-url-protocol/</id>
+    <published>2020-01-02T05:04:34.000Z</published>
+    <updated>2020-03-28T14:14:38.838Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="问题发现"><a href="#问题发现" class="headerlink" title="问题发现"></a>问题发现</h2><p>最近开发时候发现了一个奇怪的问题，在使用iOS的<code>NSURLSessionManager</code>进行文件上传时候，回调方法</p><figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">- (<span class="keyword">void</span>)URLSession:(<span class="built_in">NSURLSession</span> *)session</span><br><span class="line">              task:(<span class="built_in">NSURLSessionTask</span> *)task</span><br><span class="line">   didSendBodyData:(int64_t)bytesSent</span><br><span class="line">    totalBytesSent:(int64_t)totalBytesSent</span><br><span class="line">totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend;</span><br></pre></td></tr></table></figure><p>无论如何也不会被调用。</p><a id="more"></a><h2 id="问题排查"><a href="#问题排查" class="headerlink" title="问题排查"></a>问题排查</h2><p>尝试了各种<code>[NSURLSession uploadTaskWithRequest]</code>的写法都已失败告终。</p><p>百思不得其解，为了确定是不是<code>NSURLSession</code>自身的bug自己写了一个Demo App尝试了一下，竟然可以正常回调。</p><p>于是感觉可能是在某处HOOK了<code>NSURLSession</code>的API导致的问题，于是赶紧在工程里面搜索一下<code>NSURLSeesion</code>的各个类相关的方法，还是没有找到。</p><p>就在问题即将要变得难搞的时候，偶然在控制台的日志里面看到有输出我发送的请求的信息，立刻就意识到可能是某个<code>URLProtocol</code>拦截了我发送的请求，于是用<code>URLProtocol</code>做关键字在工程里面搜，果然，公司的网络性能监控框架通过注册了自己的<code>URLProtocol</code>来拦截请求信息，记录请求的性能问题。</p><p>于是先注释掉监控用的<code>URLProtocol</code>注册的代码，再尝试一下，果然能正常收到回调了。看来问题就是出现在这里。</p><p>翻看了一下监控<code>URLProtocol</code>的代码，看起来用的也没有问题。于是只好去搜索下看看有没有其他的解决方案。</p><h2 id="解决问题"><a href="#解决问题" class="headerlink" title="解决问题"></a>解决问题</h2><p>找到了苹果的一个<a href="https://github.com/robovm/apple-ios-samples/blob/master/CustomHTTPProtocol/Read%20Me%20About%20CustomHTTPProtocol.txt" target="_blank" rel="noopener">示例说明文档</a></p><p>里面有一段：</p><blockquote><p>Similarly, there is no way for your NSURLProtocol subclass to call the NSURLConnection delegate’s -connection:needNewBodyStream: or -connection:didSendBodyData:totalBytesWritten:totalBytesExpectedToWrite: methods (<a href>rdar://problem/9226155</a> and <a href>rdar://problem/9226157</a>).  The latter is not a serious concern–it just means that your clients don’t get upload progress–but the former is a real issue.  If you’re in a situation where you might need a second copy of a request body, you will need your own logic to make that copy, including the case where the body is a stream.</p></blockquote><p>大意是说我们自己实例化的<code>NSURLProtocol</code>子类没有办法调用<code>client</code>的<code>-connection:didSendBodyData:totalBytesWritten:totalBytesExpectedToWrite:</code>方法，所以没有办法把进度通知到<code>client</code>，也就不会调用上面的<code>- (void)URLSession:task:didSendBodyData:totalBytesSent:totalBytesExpectedToSend:</code>方法。<br>要解决这个问题就要自己去copy请求的<code>body</code>。</p><p>性能监控的<code>NSURLProtocol</code>的逻辑暂时没有办法更改，那没有办法，只有在上传的时候禁止监控了。</p><p>性能监控的<code>PerformanceURLProtocol</code>的<code>canInitWithRequest</code>里面有这么一段代码：</p><figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">+ (<span class="built_in">BOOL</span>)canInitWithRequest:(<span class="built_in">NSURLRequest</span> *)request &#123;</span><br><span class="line">    <span class="keyword">if</span> ([<span class="built_in">NSURLProtocol</span> propertyForKey:<span class="string">@"PerformanceHTTPHandledIdentifier"</span> inRequest:request] ) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NO</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>根据这段代码，在上传文件之前先调用一下</p><figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Class HMDURLProtocol = <span class="built_in">NSClassFromString</span>(<span class="string">@"PerformanceURLProtocol"</span>);</span><br><span class="line"><span class="keyword">if</span> ([PerformanceURLProtocol isSubclassOfClass:<span class="built_in">NSURLProtocol</span>.class]) &#123;</span><br><span class="line">    [PerformanceURLProtocol setProperty:@YES forKey:<span class="string">@"PerformanceHTTPHandledIdentifier"</span> inRequest:request];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>防止进入<code>PerformanceURLProtocol</code>的拦截逻辑。</p><p>重新运行代码， 一切正常。</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;h2 id=&quot;问题发现&quot;&gt;&lt;a href=&quot;#问题发现&quot; class=&quot;headerlink&quot; title=&quot;问题发现&quot;&gt;&lt;/a&gt;问题发现&lt;/h2&gt;&lt;p&gt;最近开发时候发现了一个奇怪的问题，在使用iOS的&lt;code&gt;NSURLSessionManager&lt;/code&gt;进行文件上传时候，回调方法&lt;/p&gt;
+&lt;figure class=&quot;highlight objectivec&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;- (&lt;span class=&quot;keyword&quot;&gt;void&lt;/span&gt;)URLSession:(&lt;span class=&quot;built_in&quot;&gt;NSURLSession&lt;/span&gt; *)session&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;              task:(&lt;span class=&quot;built_in&quot;&gt;NSURLSessionTask&lt;/span&gt; *)task&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;   didSendBodyData:(int64_t)bytesSent&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    totalBytesSent:(int64_t)totalBytesSent&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;无论如何也不会被调用。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="iOS" scheme="http://lxyzk.github.io/categories/iOS/"/>
+    
+    
+      <category term="iOS" scheme="http://lxyzk.github.io/tags/iOS/"/>
+    
+      <category term="NSURLProtol" scheme="http://lxyzk.github.io/tags/NSURLProtol/"/>
+    
+      <category term="upload" scheme="http://lxyzk.github.io/tags/upload/"/>
+    
+      <category term="network" scheme="http://lxyzk.github.io/tags/network/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>使用Xcode10调试iOS13设备</title>
+    <link href="http://lxyzk.github.io/2019/08/11/debug-new-device-on-old-xcode/"/>
+    <id>http://lxyzk.github.io/2019/08/11/debug-new-device-on-old-xcode/</id>
+    <published>2019-08-11T12:51:41.000Z</published>
+    <updated>2020-03-28T14:14:38.837Z</updated>
+    
+    <content type="html"><![CDATA[<p>在iOS13适配过程中会有使用低版本的SDK进行编译然后跑在高版本的设备上进行兼容性适配。 如果每次都打包出来跑在高版本的设备上实在有些麻烦又不方便Debug。其实，低版本的Xcode是可以调试高版本的设备的，只是需要进行一点改动。</p><a id="more"></a><h2 id="低版本Xcode调试高版本真机"><a href="#低版本Xcode调试高版本真机" class="headerlink" title="低版本Xcode调试高版本真机"></a>低版本Xcode调试高版本真机</h2><p>Xcode的真机部署和调试依赖一个叫做 <strong>Device Support File</strong>的东西， 每个版本的固件都有对应的该文件，只有电脑的<strong>device Support File</strong>和目标设备的系统匹配才可以调试。</p><p>对应新版本固件的<strong>Device Support File</strong>都是随新版本的Xcode附带， 首先下载好新版本的Xcode(目前最新版的是Xcode 11 beta)，然后到(假设新版本的Xcode是Xcode-beta)<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/DeviceSupport</span><br></pre></td></tr></table></figure></p><p>复制对应版本的<strong>Device Support File</strong>,</p><p> <img src="https://inspire-bucket.oss-cn-beijing.aliyuncs.com/blog/xcode-support-files.png" alt="support-files"></p><blockquote><p>注意：要整个目录一起复制， 比如上图就是复制整个<strong>13.0</strong>目录</p></blockquote><p>到旧版本的目录<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/DeviceSupport</span><br></pre></td></tr></table></figure></p><p>输入密码， 重启下旧版Xcode就可以调试高版本真机了。 </p><h2 id="低版本Xcode调试高版本模拟器"><a href="#低版本Xcode调试高版本模拟器" class="headerlink" title="低版本Xcode调试高版本模拟器"></a>低版本Xcode调试高版本模拟器</h2><p>要调试高版本的模拟器， 只需要先下载一个高版本的Xcode，然后随便打开一个项目运行一下， 等模拟器启动起来。 </p><p>然后再旧版本的Xcode上就可以选择高版本的模拟器进行调试了。</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;在iOS13适配过程中会有使用低版本的SDK进行编译然后跑在高版本的设备上进行兼容性适配。 如果每次都打包出来跑在高版本的设备上实在有些麻烦又不方便Debug。其实，低版本的Xcode是可以调试高版本的设备的，只是需要进行一点改动。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="iOS" scheme="http://lxyzk.github.io/categories/iOS/"/>
+    
+    
+      <category term="xcode" scheme="http://lxyzk.github.io/tags/xcode/"/>
+    
+      <category term="ios" scheme="http://lxyzk.github.io/tags/ios/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Debian源码安装Vim</title>
+    <link href="http://lxyzk.github.io/2019/05/28/compile_vim_debian/"/>
+    <id>http://lxyzk.github.io/2019/05/28/compile_vim_debian/</id>
+    <published>2019-05-28T13:55:14.000Z</published>
+    <updated>2020-03-28T14:14:38.837Z</updated>
+    
+    <content type="html"><![CDATA[<p>由于想使用<code>SpaceVim</code>的一套配置， 但很多Vim的插件需要启用<code>+lua</code>或<code>+python</code>配置， 服务器上自带的没有这些配置，所以从源码来自行编译Vim启用这些配置。 </p><a id="more"></a><h2 id="卸载原有的vim"><a href="#卸载原有的vim" class="headerlink" title="卸载原有的vim"></a>卸载原有的vim</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get remove --purge vim vim-runtime vim-gnome vim-tiny vim-gui-common</span><br><span class="line">sudo rm -rf /usr/local/share/vim /usr/bin/vim</span><br></pre></td></tr></table></figure><h2 id="下载源码包"><a href="#下载源码包" class="headerlink" title="下载源码包"></a>下载源码包</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git clone https://github.com/vim/vim</span><br></pre></td></tr></table></figure><h2 id="安装依赖"><a href="#安装依赖" class="headerlink" title="安装依赖"></a>安装依赖</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install lua5.1 liblua5.1-dev \</span><br><span class="line">                     luajit libluajit-5.1 \</span><br><span class="line">                     python-dev python3-dev ruby-dev \</span><br><span class="line">                     libperl-dev libncurses5-dev \</span><br><span class="line">                     libatk1.0-dev libx11-dev \</span><br><span class="line">                     libxpm-dev libxt-dev</span><br></pre></td></tr></table></figure><h2 id="编译Vim"><a href="#编译Vim" class="headerlink" title="编译Vim"></a>编译Vim</h2><h3 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">./configure --with-features=huge \</span><br><span class="line">            --enable-multibyte \</span><br><span class="line">    --enable-rubyinterp=yes \</span><br><span class="line">    --enable-pythoninterp=yes \</span><br><span class="line">    --with-python-config-dir=/usr/lib/python2.7/config \</span><br><span class="line">    --enable-python3interp=yes \</span><br><span class="line">    --with-python3-config-dir=/usr/lib/python3.5/config \</span><br><span class="line">    --enable-perlinterp=yes \</span><br><span class="line">    --enable-luainterp=yes \</span><br><span class="line">            --enable-gui=gtk2 \</span><br><span class="line">            --enable-cscope \</span><br><span class="line">   --prefix=/usr/local</span><br></pre></td></tr></table></figure><blockquote><p>这里要注意：<code>--with-python-config-dir</code> 和 <code>--with-python3-config-dir</code> 两项， 要选择正确的config目录</p></blockquote><h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo make install</span><br></pre></td></tr></table></figure><h2 id="设置为默认编辑器"><a href="#设置为默认编辑器" class="headerlink" title="设置为默认编辑器"></a>设置为默认编辑器</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo update-alternatives --install /usr/bin/editor editor /usr/local/bin/vim 1</span><br><span class="line">sudo update-alternatives --set editor /usr/local/bin/vim</span><br><span class="line">sudo update-alternatives --install /usr/bin/vi vi /usr/local/bin/vim 1</span><br><span class="line">sudo update-alternatives --set vi /usr/local/bin/vim</span><br></pre></td></tr></table></figure><h2 id="确认"><a href="#确认" class="headerlink" title="确认"></a>确认</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim --version</span><br></pre></td></tr></table></figure>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;由于想使用&lt;code&gt;SpaceVim&lt;/code&gt;的一套配置， 但很多Vim的插件需要启用&lt;code&gt;+lua&lt;/code&gt;或&lt;code&gt;+python&lt;/code&gt;配置， 服务器上自带的没有这些配置，所以从源码来自行编译Vim启用这些配置。 &lt;/p&gt;
+    
+    </summary>
+    
+      <category term="Vim" scheme="http://lxyzk.github.io/categories/Vim/"/>
+    
+    
+      <category term="Debian" scheme="http://lxyzk.github.io/tags/Debian/"/>
+    
+      <category term="Vim" scheme="http://lxyzk.github.io/tags/Vim/"/>
+    
+      <category term="+lua" scheme="http://lxyzk.github.io/tags/lua/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>在树莓派上配置下载机</title>
+    <link href="http://lxyzk.github.io/2018/08/25/raspberry-pi-aria/"/>
+    <id>http://lxyzk.github.io/2018/08/25/raspberry-pi-aria/</id>
+    <published>2018-08-25T14:16:14.000Z</published>
+    <updated>2020-03-28T14:14:38.838Z</updated>
+    
+    <content type="html"><![CDATA[<p>最近看美剧，为了专心享受美剧的快乐避免烦人的下载保存，</p><p>想到了把手头的一个树莓派和一个移动硬盘配置成下载机。</p><p>这样，客厅的小米盒子就可以通过局域网直接播放下载完的视频。</p><a id="more"></a><h2 id="硬件准备"><a href="#硬件准备" class="headerlink" title="硬件准备"></a>硬件准备</h2><ol><li><p>把移动硬盘插到树莓派上, 在树莓派中是<code>/dev/sda1</code></p></li><li><p>通过网线将树莓派连接到路由器上</p></li><li><p>在路由器的DHCP配置中将树莓派的IP配置为固定IP:<strong>192.168.31.121</strong></p></li></ol><h2 id="安装Docker"><a href="#安装Docker" class="headerlink" title="安装Docker"></a>安装Docker</h2><p>在shell中执行</p><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">curl -fsSL get.docker.com -o get-docker.sh</span><br><span class="line">sudo sh get-docker.sh --mirror Aliyun</span><br></pre></td></tr></table></figure><h2 id="配置存储目录"><a href="#配置存储目录" class="headerlink" title="配置存储目录"></a>配置存储目录</h2><h3 id="建立下载目录"><a href="#建立下载目录" class="headerlink" title="建立下载目录"></a>建立下载目录</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">mkdir nas</span><br><span class="line">cd nas </span><br><span class="line">mkdir part0</span><br></pre></td></tr></table></figure><h3 id="挂载移动硬盘"><a href="#挂载移动硬盘" class="headerlink" title="挂载移动硬盘"></a>挂载移动硬盘</h3><p>在<code>/etc/fstable</code>中添加下面的一行</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/dev/sda1   /home/pi/nas/part0/     ext4    defaults    0   2</span><br></pre></td></tr></table></figure><p>在shell中执行</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mount -a</span><br></pre></td></tr></table></figure><h2 id="配置Aria2"><a href="#配置Aria2" class="headerlink" title="配置Aria2"></a>配置<code>Aria2</code></h2><h3 id="安装镜像"><a href="#安装镜像" class="headerlink" title="安装镜像"></a>安装镜像</h3><p>建立配置文件目录</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd ~</span><br><span class="line">mkdir aria2-conf</span><br></pre></td></tr></table></figure><p>启动镜像</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">docker run -d --name aria2-ariang-pi \</span><br><span class="line">-p 6800:6800 -p 80:80 -p 8080:8080 \</span><br><span class="line">-v /home/pi/nas/part0:/aria2/downloads \</span><br><span class="line">-v /home/pi/aria2-conf:/aria2/conf \</span><br><span class="line">-e SECRET=123 huangzulin/aria2-ariang-pi #RPC服务认证密码</span><br></pre></td></tr></table></figure><p>执行完毕后，在浏览器输入</p><p><a href="http://192.168.31.121" target="_blank" rel="noopener">http://192.168.31.121</a> 访问<code>Aria-Ng</code>的前端页面</p><p><a href="http://192.168.31.121:8080" target="_blank" rel="noopener">http://192.168.31.121:8080</a> 访问文件管理</p><blockquote><p>如果提示连接错误，到<code>AriaNg Setting</code> - <code>RPC</code>选项卡中将<code>Aria2 RPC Secret Token</code>设置为上面的<code>123</code></p></blockquote><h2 id="配置SMB服务器"><a href="#配置SMB服务器" class="headerlink" title="配置SMB服务器"></a>配置SMB服务器</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">sudo docker run -it -p 139:139 -p 445:445 \</span><br><span class="line">       -p 137:137/udp \</span><br><span class="line">       -p 138:138/udp \</span><br><span class="line">       -v  /home/pi/nas/part0:/downloads \</span><br><span class="line">       -d --name=&quot;samba&quot; dperson/samba:rpi \</span><br><span class="line">       -u &quot;pi;pi&quot; \ #用户名:密码</span><br><span class="line">       -s &quot;downloads;/downloads;yes;no;no;all;pi&quot;  # 显示名称;映射路径,跟 第四行后面的/downloads对应</span><br><span class="line">       -g &quot;extensions = no&quot; \</span><br><span class="line">       -n \</span><br><span class="line">       -W \</span><br><span class="line">       -S</span><br></pre></td></tr></table></figure><p>执行完后可以通过smb://192.168.31.121 访问文件服务， 并且客厅的小米盒子也可以发现并访问</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;最近看美剧，为了专心享受美剧的快乐避免烦人的下载保存，&lt;/p&gt;
+&lt;p&gt;想到了把手头的一个树莓派和一个移动硬盘配置成下载机。&lt;/p&gt;
+&lt;p&gt;这样，客厅的小米盒子就可以通过局域网直接播放下载完的视频。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="折腾" scheme="http://lxyzk.github.io/categories/%E6%8A%98%E8%85%BE/"/>
+    
+    
+      <category term="Raspberry" scheme="http://lxyzk.github.io/tags/Raspberry/"/>
+    
+      <category term="Aria2" scheme="http://lxyzk.github.io/tags/Aria2/"/>
+    
+      <category term="Docker" scheme="http://lxyzk.github.io/tags/Docker/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>TCP/IP 笔记</title>
+    <link href="http://lxyzk.github.io/2018/04/17/tcp-ip-note/"/>
+    <id>http://lxyzk.github.io/2018/04/17/tcp-ip-note/</id>
+    <published>2018-04-17T07:02:07.000Z</published>
+    <updated>2020-03-28T14:14:38.838Z</updated>
+    
+    <content type="html"><![CDATA[<p>最近又重温了TCP/IP的知识，果然比第一次看的时候有感悟多了，那就写一点东西来总结一下。</p><a id="more"></a><h2 id="网络模型"><a href="#网络模型" class="headerlink" title="网络模型"></a>网络模型</h2><p>现在我们主要了解计算机网络的两种模型：OSI模型和TCP/IP模型。需要注意的是由于OSI模型过于复杂导致难以实现，因此导致TCP/IP模型更早地应用在现实中。这也使得TCP/IP模型成为事实上的标准，而OSI仅仅是纸面上的标准。</p><p>在OSI模型中，将计算机网络分成了7层，而在TCP/IP模型中则分成了4层，其各层对应关系如下表所示：</p><table><br>    <tr><br>        <td>OSI</td><br>        <td>TCP/IP</td><br>        <td>对应网络协议</td><br>        <td>所在位置</td><br>    </tr><br>    <tr><br>        <td>应用层</td><br>        <td rowspan="3">应用层</td><br>        <td>TFTP, FTP, NFS, WAIS</td><br>        <td rowspan="4">主机</td><br>    </tr><br>    <tr><br>        <td>表示层</td><br>        <td>Telnet, Rlogin, SNMP, Gopher</td><br>    </tr><br>    <tr><br>        <td>会话层</td><br>        <td>SMTP, DNS</td><br>    </tr><br>    <tr><br>        <td>传输层</td><br>        <td>传输层</td><br>        <td>TCP, UDP</td><br>    </tr><br>    <tr><br>        <td>网络层</td><br>        <td>网际层</td><br>        <td>IP, ICMP, ARP, RARP, AKP, UUCP</td><br>        <td rowspan="3">媒介</td><br>    </tr><br>    <tr><br>        <td>数据链路层</td><br>        <td rowspan="2">网络接口层</td><br>        <td>FDDI, Ethernet, Arpanet, PDN, SLIP, PPP</td><br>    </tr><br>    <tr><br>        <td>物理层</td><br>        <td>IEEE 802.1A, IEEE 802.2到IEEE 802.11</td><br>    </tr><br></table><h2 id="UDP与TCP协议"><a href="#UDP与TCP协议" class="headerlink" title="UDP与TCP协议"></a>UDP与TCP协议</h2><p>在整个计算机网络体系中，最核心的当属是位于传输层的TCP与UDP协议了。因为他们位于主机协议栈的最底层，向上方应用层提供不同的数据交付方式。</p><p>因为UDP协议相对TCP协议来说相对简单，就先回顾一下UDP协议。</p><h3 id="UDP协议"><a href="#UDP协议" class="headerlink" title="UDP协议"></a>UDP协议</h3><h4 id="特点"><a href="#特点" class="headerlink" title="特点"></a>特点</h4><p>UDP的全称也叫做用户数据报协议（User Datagram Protocal），它有以下几个值得注意的特点：</p><ol><li>UDP不能保证可靠传输，也就更不能保证所发送的数据的到达顺序，它所实现的是尽最大的努力交付。</li><li>UDP是面向数据报文的、无连接的协议，因此它的开销低并且发送器前的时延小（因为不用建立连接啊），面向报文也使得IP层在传输UDP协议的报文时既不会拆分也不会合并。</li><li>UDP可以支持一对一、一对多、多对一、多对多的通信。</li><li>UDP没有拥塞控制功能，它的发送速率不会随着网络出现的拥塞而降低，所以它的实时性较好。这也是许多视频聊天应用采用它的原因。</li></ol><h4 id="报文格式"><a href="#报文格式" class="headerlink" title="报文格式"></a>报文格式</h4><p>如下是UDP报文头部格式<br><img src="http://static.zybuluo.com/lxyzk/bfmo5pfpdp8olbc0bjacyyad/UDP%E5%A4%B4%E9%83%A8%E6%A0%BC%E5%BC%8F.PNG" alt="UDP头部格式"></p><p>其中从1到8字节分别是来源端口号、目的端口号、报文长度、检验和，每个字段各占两字节。</p><p>UDP的通信方式较为简单，发送端发送完一个报文继续发送下一个，待将所有报文发送完毕通信就结束了。</p><p>接收方也是如此。</p><h3 id="TCP协议"><a href="#TCP协议" class="headerlink" title="TCP协议"></a>TCP协议</h3><p>传输控制协议（英语：Transmission Control Protocol，缩写为 TCP）是一种面向连接的、可靠的、基于字节流的传输层通信协议。</p><p>TCP协议所要实现的功能是端到端之间的可靠传输，因此，相较于UDP协议而言，TCP协议要复杂的多。</p><h4 id="特点-1"><a href="#特点-1" class="headerlink" title="特点"></a>特点</h4><p>相对于UDP协议，TCP协议有下面的几个特点：</p><ol><li>TCP协议保证可靠传输，也就是说发送的数据是什么样，接收的数据也是什么样。</li><li>TCP协议是有连接的、面向数据流的协议。有连接是说数据传送前通信双方需要建立连接、通信完毕后需要断开连接，不过这里所提到的连接都是逻辑上的连接。面向数据流的意思是说发送方应用程序发送的数据是什么顺序，接收方应用读取的接收到的数据也是什么顺序。</li><li>TCP协议提供的是端到端的通信，也就是说一条TCP连接只能提供一对一的通信。不过，一个应用可以同时建立多条TCP连接来实现与多个目标的通信。</li><li>TCP协议提供拥塞控制功能，会在网络状况良好的情况下适当提高发送/接收速率，反之则适当降低发送/接收速率。这样，将会提高对网络的利用率。</li></ol><p>此外，还需要注意的是，TCP提供的是<strong>全双工</strong>的通信。</p><h4 id="数据封包格式"><a href="#数据封包格式" class="headerlink" title="数据封包格式"></a>数据封包格式</h4><p>要理解TCP协议中各功能的实现，要先从TCP的数据封包结构开始。</p><p>下面的图片就是TCP数据封包的结构示意图：</p><p><img src="http://static.zybuluo.com/lxyzk/d4hc6uj75kixb0yq1odxc35b/TCP%E6%95%B0%E6%8D%AE%E5%8C%85%E6%A0%BC%E5%BC%8F.PNG" alt="TCP数据包格式"></p><p>各个字段功能如下：</p><ol><li>来源端口（2字节）：标识来源端口号。</li><li>目的端口（2字节）：标识目的端口号。</li><li>序列号码（4字节）：表明此封包在字节流中的顺序号。因为TCP是面向字节流的协议，需要保证最终的数据顺序与发送方发送的顺序一致，所以需要这个字段来表明该封包在字节流中的位置。</li><li>确认号码（4字节）：对此前按顺序收到的最后一个封包的序列号码的确认。<br>例如：当<strong>33</strong>号以前的封包都已经完整的到达了后，就向发送方发送确认号码为<strong>34</strong>（确认的封包号码+1）来告诉发送方：33号以前的所有封包我都已经收到了，可以向我发送34号封包了。<br>这里要注意： 如果收到了34、35、37号封包而未收到36号封包，则向发送端发送确认号为35的封包。<blockquote><p>总之要记住，确认号=N，表示N-1及其之前的封包都已经收到。</p></blockquote></li><li>报头长度（1字节）：指示报文头部的长度。<br>但是需要注意，这里的单位是<strong>4字节</strong>。例如，这个属性的值是15的话则说明报文头部的长度是60(15*4)字节。</li><li>保留字段(10位)：暂时没打算好干啥用，一律置0。</li><li>标识符（6位）：每个比特位分别表示如下标识符：<br>URG—为1表示高优先级数据包，紧急指针字段有效。<br>ACK—为1表示确认号字段有效。TCP规定连接建立后，所有传送的报文段都必须把该字段置为1。<br>PSH—为1表示是带有PUSH标志的数据，指示接收方应该尽快将这个报文段交给应用层而不用等待缓冲区装满。<br>RST—为1表示出现严重差错。可能需要重现创建TCP连接。还可以用于拒绝非法的报文段和拒绝连接请求。<br>SYN—为1表示这是连接请求或是连接接受请求，用于创建连接和使顺序号同步<br>FIN—为1表示发送方没有数据要传输了，要求释放连接。</li><li>窗口（2字节）:表示从确认号开始，本报文的源方可以接收的字节数，即源方接收窗口大小。用于流量控制。</li><li>校验和（2字节）对整个的TCP报文段，包括TCP头部和TCP数据，以16位字进行计算所得。这是一个强制性的字段。</li><li>紧急指针（2字节）：本报文段中的紧急数据的最后一个字节的序号。</li><li>选项字段（最多40字节）：每个选项的开始是1字节的kind字段，说明选项的类型。</li></ol><p> 其中上面的3、4、7、8是重点。</p><h4 id="超时重传"><a href="#超时重传" class="headerlink" title="超时重传"></a>超时重传</h4><p>为了搞明白下面要说的TCP的一些机制，首先需要知道TCP协议能够实现可靠传输的一个基本的原理–超时重传。</p><p>说来很简单，其实就是收到当接收方收到一个数据封包的时候就向发送方发送一个确认数据封包。而当发送方发送完一个数据封包经过一段时间没有收到接收方的确认封包时，就会将上一个封包再次向接收方发送一次。</p><p>当然，TCP中真正的机制比这个要复杂的多，但是基于的原理都是一样的。</p><h4 id="TCP连接管理"><a href="#TCP连接管理" class="headerlink" title="TCP连接管理"></a>TCP连接管理</h4><p>在说TCP连接之前先插播一个小故事。</p><blockquote><p>说是有一天，一个程序员到酒吧去喝酒，于是跟服务员之间发生了如下的对话。<br>程序员：我要一瓶酒。<br>服务员：你确定你要一瓶酒？<br>程序员：我确定我要一瓶酒。<br>于是服务员就给了程序员一瓶酒。</p></blockquote><p>是不是很罗嗦？没错，这就是典型的TCP连接建立的过程。如下面的图：</p><p><img src="http://static.zybuluo.com/lxyzk/fk384ptm9shlrofn0l6yci33/Connection_TCP.png" alt="Connection_TCP"></p><p>图中的小人就是客户端，另一边不用说也知道就是服务器端。图中画的比较简略，大概过程是下面这样：</p><blockquote><p>下面过程中，ACK表示上面说的TCP包头中的确认标识，ack表示确认号(4字节那个)。</p></blockquote><ol><li>客户端向服务器发送建立连接请求数据包，其中包头内容SYN=1，seq=x（自己随机挑选的起始序号）。（我要一瓶酒）</li><li>服务器收到请求后，如果同意建立连接，就向客户端发送同意建立连接请求数据封包，其包头内容SYN=1,ACK=1,ack=x+1(还记得为什么吗),seq=y（同样也是自己随机挑选的）。（你确定你要一瓶酒吗）</li><li>客户端收到服务器发来的确认请求后，也向服务器发送确认封包，其内容ACK=1，ack=y+1(原理同上),seq=x+1（毕竟已经发送过seq=x的封包了），随后客户端就进入连接建立状态，而服务器就在收到这个确认封包后也进入连接建立状态。（我确定我要一瓶酒）</li></ol><p>以上步骤就是俗称的“TCP三次握手”。</p><p>当然，最初的时候服务器肯定是处于监听状态啦，要不然怎么能够对客户端的数据封包做出回应呢。</p><p>要注意的是，这里有个很经典的问题就是为什么在收到服务器的确认封包后还要再向服务器发送一个确认封包呢？</p><p>这主要是因为TCP协议的下层网络是不可靠的，也就是说数据封包可能丢失也可能滞留在某个节点很长时间。</p><p>所以这就有一种可能就是客户端发送给服务器的封包在网络中滞留了，这样客户端当然也就不会收到服务器发来的确认封包。还记得TCP有个超时重传机制吗？没错，这个时候客户端是以为自己发出去的封包在网络中是丢了的，于是过一段时间又会重传刚才的封包。</p><p>幸运的是，这次重传的封包十分顺利的到达了服务器，于是服务器也十分顺利的向客户端发出了确认封包。本来就要愉快的建立连接了，可是天有不测风云，刚才滞留的请求封包此时到达了服务器这里。</p><p>这个时候服务器就懵了，这到底是客户端又要跟我建立一次连接还是刚才滞留的封包又给了我呢？</p><p>于是这个时候就需要客户端再发送一个确认封包给服务器了。</p><p>当然，有连接建立，就有连接释放，客户端与服务器之间的连接释放过程大概是下面这个样子的。</p><p><img src="http://static.zybuluo.com/lxyzk/q53umfysakatjhb3zuurezvj/Deconnection_TCP.png" alt="Deconnection_TCP"></p><p>跟建立连接的时候差不多，大概过程大概向下面这样：</p><ol><li>客户端向服务器发送连接请求释放封包，封包内容为FIN=1，seq=u。</li><li>服务器收到后，决定要跟客户端释放连接，可是还有数据没传送完啊，就先发一个封包告诉客户端我可以释放连接，你可以不用向我发送数据了，可是我还有数据没有传送完，所以在我告诉你结束之前你得一直接收我的数据（别忘了，TCP可是全双工的）。所以所发送封包内容为：ACK=1，ack=u+1,seq=v。（FIN=0表示我还有数据要发送）</li><li>服务器发送完数据后，告诉客户端我都发送完了，可以结束了。于是发送封包为FIN=1，ACK=1，ack=u+1(这里得注意啦)，seq=w（中间还传输过数据，所以可能不是v+1）。</li><li>客户端收到服务器的确认后，再次向服务器发送确认，内容是ACK=1，ack=w+1，seq=u+1。</li><li>发送完上面的确认封包后，客户端再等一段时间（2MSL）后，就断开连接。至此，连接正常释放。</li></ol><p>如上步骤就是俗称的“TCP4次挥手”。</p><p>这里之所以是4次，主要是与建立连接时相比，服务器的确认和结束被分成了两个封包分别发送了出去。</p><p>当然，这里也有个比较经典的问题就是客户端为什么在发送完最后一个封包后还要再等待一段时间？</p><p>这里也主要是因为TCP协议下层的网络并不是很可靠，有可能客户端发出的最后一个封包在路上丢了而导致服务器等待很长世间浪费服务器资源。于是就让客户端再等待一段时间，这样当服务器收不到客户端发来的确认封包时，还会再重传一个连接结束封包，此时的客户端再次受到这个连接结束封包后还可以再重传一次确认封包来让服务器正常结束连接。这样，就不会白白浪费服务器资源了。</p><h2 id="一个数据包的旅程"><a href="#一个数据包的旅程" class="headerlink" title="一个数据包的旅程"></a>一个数据包的旅程</h2><p>最后，再从整个网络的范围来看，一个数据封包到底是要经过怎样的旅程才会从出发地到达目的地呢？</p><p>以TCP协议为例，当TCP协议接到上层应用层交付下来的数据封包后，就在这个数据封包的前面加上TCP的头部。</p><p>然后，再交付给下层的网络层。</p><p>网络层接收到上层传输层传递下来的封包后，就在封包的头部加上IP协议的头部和网际接口层的首部和头部后经过层层路由，最终到达距离目的主机最近的路由器。</p><p>然后距离目的主机最近的路由器再对数据包进行解包，去掉网际接口层和网络层的封装后将数据包送到目的主机的传输层（TCP接收缓冲池），再由目的主机的传输层交给上层的应用层。</p><p>一图以蔽之：</p><p><img src="http://static.zybuluo.com/lxyzk/tf4dbqv6gqm0lqj4069t2n82/TCP_DataFlow.PNG" alt="TCP_DataFlow.PNG"></p><h2 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h2><p><a href="https://zh.wikipedia.org/wiki/TCP/IP%E5%8D%8F%E8%AE%AE%E6%97%8F" target="_blank" rel="noopener">维基百科-TCP/IP协议簇</a><br><a href="https://zh.wikipedia.org/wiki/%E7%94%A8%E6%88%B7%E6%95%B0%E6%8D%AE%E6%8A%A5%E5%8D%8F%E8%AE%AE" target="_blank" rel="noopener">维基百科-用户数据报协议</a><br><a href="https://zh.wikipedia.org/wiki/%E4%BC%A0%E8%BE%93%E6%8E%A7%E5%88%B6%E5%8D%8F%E8%AE%AE" target="_blank" rel="noopener">维基百科-传输控制协议</a></p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;最近又重温了TCP/IP的知识，果然比第一次看的时候有感悟多了，那就写一点东西来总结一下。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="networking" scheme="http://lxyzk.github.io/categories/networking/"/>
+    
+    
+      <category term="tcp/ip" scheme="http://lxyzk.github.io/tags/tcp-ip/"/>
+    
+      <category term="networking" scheme="http://lxyzk.github.io/tags/networking/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>TCP/IP 拥塞控制</title>
+    <link href="http://lxyzk.github.io/2018/04/17/tcp-ip-congestion-control/"/>
+    <id>http://lxyzk.github.io/2018/04/17/tcp-ip-congestion-control/</id>
+    <published>2018-04-17T06:54:32.000Z</published>
+    <updated>2020-03-28T14:14:38.838Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="什么是拥塞"><a href="#什么是拥塞" class="headerlink" title="什么是拥塞"></a>什么是拥塞</h2><p>我们都知道计算机网络中的资源是有限的。某段时间内网络中对资源的需求超过了网络中的可用部分，而导致网络性能下降的情况就是<strong>拥塞</strong>。</p><p>通俗点说就是发送的数据包太多网络中的设备处理不过来，而导致网络性能下降的情况。</p><a id="more"></a><h2 id="TCP为什么要进行拥塞控制"><a href="#TCP为什么要进行拥塞控制" class="headerlink" title="TCP为什么要进行拥塞控制"></a>TCP为什么要进行拥塞控制</h2><p>网络中的路由器会有一个数据包处理队列，当路由器接收到的数据包太多而一下子处理不过来时，就会导致数据包处理队列过长。此时，路由器就会无条件的丢弃新接收到的数据封包。</p><p>这就会导致上层的TCP协议以为数据包在网络中丢失，进而重传这些数据包，而路由器又会丢弃这些重传的数据包，如此以往，就会导致网络性能急剧下降，引起网络瘫痪。</p><p>因此，TCP需要控制数据包发送的数量来避免网络性能的下降。</p><h2 id="拥塞控制与流量控制的区别"><a href="#拥塞控制与流量控制的区别" class="headerlink" title="拥塞控制与流量控制的区别"></a>拥塞控制与流量控制的区别</h2><p>引用书上的答案：</p><blockquote><ul><li><strong>拥塞控制</strong>就是防止过多的数据注入到网络中，这样可以防止网络中的路由器或链路不致过载。拥塞控制所要做的都有一个前提，就是网络能够承受现有的网络负荷。拥塞控制是一个全局性的过程，涉及到所有的主机、所有的路由器，以及与降低网络传输性能有关的所有因素。</li><li><strong>流量控制</strong>往往指点对点通信量的控制，是个端到端的问题。流量控制所要做的就是抑制发送端发送数据的速率，以便使接收端来得及接收。</li></ul></blockquote><h1 id="拥塞控制的方法"><a href="#拥塞控制的方法" class="headerlink" title="拥塞控制的方法"></a>拥塞控制的方法</h1><h2 id="慢开始"><a href="#慢开始" class="headerlink" title="慢开始"></a>慢开始</h2><h3 id="拥塞窗口"><a href="#拥塞窗口" class="headerlink" title="拥塞窗口"></a>拥塞窗口</h3><p>拥塞窗口（cwnd）是指发送方维护的一个根据网络状况动态变化的窗口。一般来说，发送方会让自己的发送窗口等于拥塞窗口的大小。</p><blockquote><p>如果考虑到流量控制的话，发送窗口也有可能小于拥塞窗口的大小。</p></blockquote><h3 id="传输轮次"><a href="#传输轮次" class="headerlink" title="传输轮次"></a>传输轮次</h3><p>一个传输轮次是指发送方把自己的发送窗口内的数据全部发送出去并收到对最后一个字节的确认。</p><p>例如，A将自己的发送窗口内的数据全部连续发送给了B，而B收到这些数据后向A发送了对这些数据的确认，A收到这个确认后，一个传输轮次就算是完成了。</p><h3 id="慢开始算法"><a href="#慢开始算法" class="headerlink" title="慢开始算法"></a>慢开始算法</h3><p>慢开始算法中的主要方法就是有小到大逐渐增大发送窗口。</p><p>那么，具体是怎么增大的呢？</p><p>简单来说就是每个传输轮次后将cwnd大小加倍。</p><p>举个例子：</p><p>首先，发送方设置cwnd=1（为方便理解，这里用报文段的个数作为窗口大小的单位），在收到接收方发来的确认后（也就是下个传输轮次），设置cwnd=2，然后将发送窗口的数据发送出去。在一次收到接收方发来的确认后，发送方设置cwnd=4，再讲发送窗口中的数据发送出去。然后再重复上面的过程。</p><p>这里就应该清楚，<strong>慢开始</strong>算法中的<strong>慢</strong>不是说cwnd增长的<strong>慢</strong>，而是相对一下子发送大量数据而言，这种一次先发送少量的数据包的方式要<strong>慢</strong>许多。</p><p>当然，cwnd的大小肯定不可能一直以这种指数的方式增长下去，要不然很快就会增长到引起网络瘫痪的程度了。</p><p>所以，经过一定时间或条件，我们就要换成<strong>拥塞避免</strong>算法来发送数据。</p><h2 id="拥塞避免"><a href="#拥塞避免" class="headerlink" title="拥塞避免"></a>拥塞避免</h2><h3 id="慢开始门限-ssthresh"><a href="#慢开始门限-ssthresh" class="headerlink" title="慢开始门限 ssthresh"></a>慢开始门限 ssthresh</h3><p>像上面所说，不能任由慢开始算法中的cwnd任意增长，所以我们引入一个<strong>慢开始门限（ssthresh）</strong>的阈值来控制cwnd的增长。</p><p>具体作用如下：</p><ul><li>cwnd &lt; ssthresh ，使用慢开始算法</li><li>cwnd = ssthresh , 使用慢开始算法或拥塞避免算法都可以</li><li>cwnd &gt; ssthresh , 使用拥塞避免算法呢</li></ul><p>还有一个问题就是这个ssthresh是怎么设置的呢？</p><p>TCP/IP中规定无论是在慢开始阶段还是在拥塞避免阶段，只要发现网络中出现拥塞（没有按时收到确认），就要把ssthresh设置为此时发送窗口的一半大小（不能小于2）。</p><h3 id="拥塞避免过程"><a href="#拥塞避免过程" class="headerlink" title="拥塞避免过程"></a>拥塞避免过程</h3><p><strong>拥塞避免</strong>算法也是逐渐的增大cwnd的大小，只是采用的是线性增长而不是像<strong>慢开始</strong>算法那样的指数增长。</p><p>具体来说就是每个传输轮次后将cwnd的大小加一（加法增大），如果发现出现网络拥塞的话就按照上面的方法重新设置<strong>ssthresh</strong>的大小（乘法减小）并从cwnd=1开始重新执行<strong>慢开始</strong>算法。</p><p>如下面的图片所示：</p><p><img src="http://static.zybuluo.com/lxyzk/zxxuqcjbsq9gzyotfbfjwjrn/%E6%8B%A5%E5%A1%9E%E9%81%BF%E5%85%8D%E7%AE%97%E6%B3%95%E5%9B%BE%E8%A7%A3" alt="拥塞避免算法图解"></p><p>（图片来源于网络）</p><h2 id="快重传"><a href="#快重传" class="headerlink" title="快重传"></a>快重传</h2><p>前面复习到过，TCP的可靠传输的原理就是<strong>超时重传</strong>机制。配合上面的<strong>慢开始</strong>和<strong>拥塞避免</strong>使用就是发送发发送完数据后设置一个定时器，如果在定时器时间内没有收到对接收方发来的确认的话就去执行上述的<strong>乘法减小</strong>过程并重新开始<strong>慢开始</strong>算法。</p><p>而<strong>快重传</strong>则是允许发送方再连续收到3个重复的确认后就可以开始执行<strong>乘法减小</strong>过程而不必再等待所设置的重传计时器到时。</p><p>这就需要接收方没收到一个<strong>失序的报文段</strong>就立即发出重复确认以让发送发及早知道有报文段丢失，而不是等待自己发送数据的时候进行捎带确认。</p><h2 id="快恢复"><a href="#快恢复" class="headerlink" title="快恢复"></a>快恢复</h2><p><strong>快恢复算法</strong>是与<strong>快重传算法</strong>配合使用的一个算法。</p><p>使用了<strong>快恢复算法</strong>后与原来不同的一点是当发现网络出现拥塞并执行了<strong>乘法减小</strong>过程后，并不是设置cwnd=1并重新开始执行<strong>慢开始</strong>算法，而是让cwnd=<strong>乘法减小</strong>后的<strong>ssthresh</strong>并开始执行<strong>拥塞避免</strong>算法。</p><p>因为此时发送发能连续接收到三个重复的确认就可以认为此时网络很可能没有发生拥塞。</p><p>使用了<strong>快重传</strong>和<strong>快恢复</strong>的拥塞避免过程如下：</p><p><img src="http://static.zybuluo.com/lxyzk/i6zrad1hw97f0a4okjxke7c4/%E5%BF%AB%E9%87%8D%E4%BC%A0%E5%BF%AB%E6%81%A2%E5%A4%8D" alt="快重传快恢复"></p><p>（图片来源于网络）</p><h2 id="TCP的发送窗口到底是多大"><a href="#TCP的发送窗口到底是多大" class="headerlink" title="TCP的发送窗口到底是多大"></a>TCP的发送窗口到底是多大</h2><p>发送窗口的上限值 = Min{rwnd, cwnd}</p><p>rwnd：接收方接收窗口<br>cwnd：发送方拥塞窗口</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;h2 id=&quot;什么是拥塞&quot;&gt;&lt;a href=&quot;#什么是拥塞&quot; class=&quot;headerlink&quot; title=&quot;什么是拥塞&quot;&gt;&lt;/a&gt;什么是拥塞&lt;/h2&gt;&lt;p&gt;我们都知道计算机网络中的资源是有限的。某段时间内网络中对资源的需求超过了网络中的可用部分，而导致网络性能下降的情况就是&lt;strong&gt;拥塞&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;通俗点说就是发送的数据包太多网络中的设备处理不过来，而导致网络性能下降的情况。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="networking" scheme="http://lxyzk.github.io/categories/networking/"/>
+    
+    
+      <category term="tcp/ip" scheme="http://lxyzk.github.io/tags/tcp-ip/"/>
+    
+      <category term="networking" scheme="http://lxyzk.github.io/tags/networking/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>First Post</title>
+    <link href="http://lxyzk.github.io/2018/04/16/first-post/"/>
+    <id>http://lxyzk.github.io/2018/04/16/first-post/</id>
+    <published>2018-04-16T06:58:30.000Z</published>
+    <updated>2020-03-28T14:14:38.837Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="第一篇博客"><a href="#第一篇博客" class="headerlink" title="第一篇博客"></a>第一篇博客</h1><p>这篇博客的意义是for test</p><h2 id="测试二级标题"><a href="#测试二级标题" class="headerlink" title="测试二级标题"></a>测试二级标题</h2><p>二级标题 test</p><h3 id="测试三级标题"><a href="#测试三级标题" class="headerlink" title="测试三级标题"></a>测试三级标题</h3><p>三级标题test</p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;h1 id=&quot;第一篇博客&quot;&gt;&lt;a href=&quot;#第一篇博客&quot; class=&quot;headerlink&quot; title=&quot;第一篇博客&quot;&gt;&lt;/a&gt;第一篇博客&lt;/h1&gt;&lt;p&gt;这篇博客的意义是for test&lt;/p&gt;
+&lt;h2 id=&quot;测试二级标题&quot;&gt;&lt;a href=&quot;#测试二级标题&quot; cla
+      
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>Hello World</title>
+    <link href="http://lxyzk.github.io/2018/04/16/hello-world/"/>
+    <id>http://lxyzk.github.io/2018/04/16/hello-world/</id>
+    <published>2018-04-16T06:58:30.000Z</published>
+    <updated>2020-03-28T14:14:38.838Z</updated>
+    
+    <content type="html"><![CDATA[<p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p><h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p><h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p><h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p><h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="noopener">Deployment</a></p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;Welcome to &lt;a href=&quot;https://hexo.io/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Hexo&lt;/a&gt;! This is your very first post. Check &lt;a href=&quot;https://hexo.
+      
+    
+    </summary>
+    
+    
+  </entry>
+  
+</feed>

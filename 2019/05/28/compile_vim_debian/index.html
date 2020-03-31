@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <title>Debian源码安装Vim | Xiangxin</title>
+  <meta name="description" content>
+  <meta name="keywords" content>
+  <meta name="HandheldFriendly" content="True">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="shortcut icon" href="/">
+  <link rel="alternate" href="/atom.xml" title="Xiangxin">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="由于想使用SpaceVim的一套配置， 但很多Vim的插件需要启用+lua或+python配置， 服务器上自带的没有这些配置，所以从源码来自行编译Vim启用这些配置。">
+<meta name="keywords" content="Debian,Vim,+lua">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Debian源码安装Vim">
+<meta property="og:url" content="http://lxyzk.github.io/2019/05/28/compile_vim_debian/index.html">
+<meta property="og:site_name" content="Xiangxin">
+<meta property="og:description" content="由于想使用SpaceVim的一套配置， 但很多Vim的插件需要启用+lua或+python配置， 服务器上自带的没有这些配置，所以从源码来自行编译Vim启用这些配置。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2020-03-28T14:14:38.837Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Debian源码安装Vim">
+<meta name="twitter:description" content="由于想使用SpaceVim的一套配置， 但很多Vim的插件需要启用+lua或+python配置， 服务器上自带的没有这些配置，所以从源码来自行编译Vim启用这些配置。">
+
+  <link rel="shortcut icon" href>
+  <link rel="icon" href>
+  <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Inconsolata|Titillium+Web" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Roboto+Mono" rel="stylesheet">
+  <link href="https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/node-waves/0.7.5/waves.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <script>
+    function setLoadingBarProgress(num) {
+      document.getElementById('loading-bar').style.width=num+"%";
+    }
+  </script>
+</head>
+</html>
+<body>
+  <div id="loading-bar-wrapper">
+  <div id="loading-bar"></div>
+</div>
+
+
+  <script>setLoadingBarProgress(20)</script>
+  <header class="l_header">
+	<div class='wrapper'>
+		<div class="nav-main container container--flex">
+			<a class="logo flat-box" href='/' >
+				<!-- <i class="fa fa-home"></i> -->
+				Xiangxin
+			</a>
+
+				<div class='menu'>
+					<ul class='h-list'>
+						
+							<li>
+								<a class='flat-box nav-home' href='/'>
+									<i class="fa fa-rss"></i>
+									博客
+								</a>
+							</li>
+						
+							<li>
+								<a class='flat-box nav-archives' href='/archives'>
+									<i class="fa fa-archive"></i>
+									归档
+								</a>
+							</li>
+						
+					</ul>
+					<div class='underline'></div>
+				</div>
+
+			
+				<div class="m_search">
+					<form name="searchform" class="form u-search-form">
+						<input type="text" class="input u-search-input" placeholder="Search" />
+						<span class="icon"><i class="fa fa-search"></i></span>
+					</form>
+				</div>
+			
+			<ul class='switcher h-list'>
+				
+					<li class='s-search'><a href='javascript:void(0)'><i class="fa fa-search flat-box"></i></span></a></li>
+				
+				<li class='s-menu'><a href='javascript:void(0)'><i class="fa fa-navicon flat-box"></i></a></li>
+			</ul>
+		</div>
+
+		<div class='nav-sub container container--flex'>
+			<a class="logo" class="flat-box" href='javascript:void(0)'>
+				xaoxuu
+			</a>
+
+			<ul class='switcher h-list'>
+				<li class='s-comment'><a href='javascript:void(0)'><i class="fa fa-comments flat-box"></i></a></li>
+				<li class='s-top'><a href='javascript:void(0)'><i class="fa fa-arrow-up flat-box"></i></a></li>
+				<li class='s-toc'><a href='javascript:void(0)'><i class="fa fa-list-ul flat-box"></i></a></li>
+			</ul>
+		</div>
+	</div>
+</header>
+	<aside class="menu-phone">
+        <div class="header">Xiangxin</div>
+		<nav>
+			
+				<a href="/" class="nav-home nav">
+					<i class="fa fa-rss"></i>
+					博客
+				</a>
+			
+				<a href="/archives" class="nav-archives nav">
+					<i class="fa fa-archive"></i>
+					归档
+				</a>
+			
+		</nav>
+	</aside>
+
+    <script>setLoadingBarProgress(40);</script>
+  <div class="l_body">
+    <div class='container clearfix'>
+      <div class='l_main'>
+        <article id="post-compile_vim_debian" class="post white-box article-type-post" itemscope itemprop="blogPost">
+    <section class='meta'>
+        <h1 class="title">
+            
+                Debian源码安装Vim
+            
+        </h1>
+        <time>
+            2019-05-28 星期二&nbsp;&nbsp;
+            <i class="fa fa-eye" aria-hidden="true"></i>&nbsp;<span id="busuanzi_value_page_pv"><i class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></i></span>
+        </time>
+        
+    
+    <div class='cats'>
+        <a href="/categories/Vim/">Vim</a>
+    </div>
+
+
+    </section>
+
+    <section class="article typo">
+
+        <div class="article-entry" itemprop="articleBody">
+            <p>由于想使用<code>SpaceVim</code>的一套配置， 但很多Vim的插件需要启用<code>+lua</code>或<code>+python</code>配置， 服务器上自带的没有这些配置，所以从源码来自行编译Vim启用这些配置。 </p>
+<a id="more"></a>
+<h2 id="卸载原有的vim"><a href="#卸载原有的vim" class="headerlink" title="卸载原有的vim"></a>卸载原有的vim</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get remove --purge vim vim-runtime vim-gnome vim-tiny vim-gui-common</span><br><span class="line">sudo rm -rf /usr/local/share/vim /usr/bin/vim</span><br></pre></td></tr></table></figure>
+<h2 id="下载源码包"><a href="#下载源码包" class="headerlink" title="下载源码包"></a>下载源码包</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git clone https://github.com/vim/vim</span><br></pre></td></tr></table></figure>
+<h2 id="安装依赖"><a href="#安装依赖" class="headerlink" title="安装依赖"></a>安装依赖</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install lua5.1 liblua5.1-dev \</span><br><span class="line">                     luajit libluajit-5.1 \</span><br><span class="line">                     python-dev python3-dev ruby-dev \</span><br><span class="line">                     libperl-dev libncurses5-dev \</span><br><span class="line">                     libatk1.0-dev libx11-dev \</span><br><span class="line">                     libxpm-dev libxt-dev</span><br></pre></td></tr></table></figure>
+<h2 id="编译Vim"><a href="#编译Vim" class="headerlink" title="编译Vim"></a>编译Vim</h2><h3 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">./configure --with-features=huge \</span><br><span class="line">            --enable-multibyte \</span><br><span class="line">	    --enable-rubyinterp=yes \</span><br><span class="line">	    --enable-pythoninterp=yes \</span><br><span class="line">	    --with-python-config-dir=/usr/lib/python2.7/config \</span><br><span class="line">	    --enable-python3interp=yes \</span><br><span class="line">	    --with-python3-config-dir=/usr/lib/python3.5/config \</span><br><span class="line">	    --enable-perlinterp=yes \</span><br><span class="line">	    --enable-luainterp=yes \</span><br><span class="line">            --enable-gui=gtk2 \</span><br><span class="line">            --enable-cscope \</span><br><span class="line">	   --prefix=/usr/local</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>这里要注意：<code>--with-python-config-dir</code> 和 <code>--with-python3-config-dir</code> 两项， 要选择正确的config目录</p>
+</blockquote>
+<h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo make install</span><br></pre></td></tr></table></figure>
+<h2 id="设置为默认编辑器"><a href="#设置为默认编辑器" class="headerlink" title="设置为默认编辑器"></a>设置为默认编辑器</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo update-alternatives --install /usr/bin/editor editor /usr/local/bin/vim 1</span><br><span class="line">sudo update-alternatives --set editor /usr/local/bin/vim</span><br><span class="line">sudo update-alternatives --install /usr/bin/vi vi /usr/local/bin/vim 1</span><br><span class="line">sudo update-alternatives --set vi /usr/local/bin/vim</span><br></pre></td></tr></table></figure>
+<h2 id="确认"><a href="#确认" class="headerlink" title="确认"></a>确认</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim --version</span><br></pre></td></tr></table></figure>
+        </div>
+
+        
+            <div class="article-tags tags">
+                
+                    <a href="/tags/Debian/"><i class="fa fa-tag"></i>&nbsp;&nbsp;Debian</a>
+                
+                    <a href="/tags/Vim/"><i class="fa fa-tag"></i>&nbsp;&nbsp;Vim</a>
+                
+                    <a href="/tags/lua/"><i class="fa fa-tag"></i>&nbsp;&nbsp;+lua</a>
+                
+            </div>
+        
+
+        
+            <div class="art-item-footer">
+                
+                    <span class="art-item-left">
+                        <i class="fa fa-chevron-left" aria-hidden="true"></i>&nbsp;
+                        <a href="/2019/08/11/debug-new-device-on-old-xcode/" rel="prev" title="使用Xcode10调试iOS13设备">
+                            使用Xcode10调试iOS13设备
+                        </a>
+                    </span>
+                
+                
+                    <span class="art-item-right">
+                        <a href="/2018/08/25/raspberry-pi-aria/" rel="next" title="在树莓派上配置下载机">
+                            在树莓派上配置下载机
+                        </a>&nbsp;
+                        <i class="fa fa-chevron-right" aria-hidden="true"></i>
+                    </span>
+                
+            </div>
+        
+
+    </section>
+
+</article>
+
+<br>
+
+<!-- 显示推荐文章和评论 -->
+
+    <article class="post white-box article-type-post>">
+        <section class="article typo">
+
+            
+                
+
+    <div class="recommended_posts">
+        <h4><i class="fa fa-bookmark" aria-hidden="true"></i>&nbsp;&nbsp;&nbsp;你可能感兴趣的文章</h4>
+        <ul>
+            
+                <li><a href="http://lxyzk.github.io/2020/01/02/ns-url-protocol/">URLProtocol导致上传进度回调丢失排查过程</a></li>
+            
+                <li><a href="http://lxyzk.github.io/2019/08/11/debug-new-device-on-old-xcode/">使用Xcode10调试iOS13设备</a></li>
+            
+                <li><a href="http://lxyzk.github.io/2018/08/25/raspberry-pi-aria/">在树莓派上配置下载机</a></li>
+            
+                <li><a href="http://lxyzk.github.io/2018/04/17/tcp-ip-note/">TCP/IP 笔记</a></li>
+            
+                <li><a href="http://lxyzk.github.io/2018/04/17/tcp-ip-congestion-control/">TCP/IP 拥塞控制</a></li>
+            
+        </ul>
+    </div>
+    <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+
+
+            
+
+            
+
+                
+
+                
+
+                
+            
+
+        </section>
+    </article>
+
+
+<script>
+    window.subData = {
+        title: 'Debian源码安装Vim',
+        tools: true
+    }
+</script>
+
+
+      </div>
+      <aside class='l_side'>
+        
+  <section class='m_widget categories'>
+<div class='header'><i class="fa fa-sitemap" aria-hidden="true"></i>&nbsp;&nbsp;分类</div>
+<div class='content'>
+    
+    <ul class="entry">
+    
+        <li><a class="flat-box" href="/categories/Vim/"><div class='name'>Vim</div><div class='badge'>1</div></a></li>
+    
+        <li><a class="flat-box" href="/categories/iOS/"><div class='name'>iOS</div><div class='badge'>2</div></a></li>
+    
+        <li><a class="flat-box" href="/categories/networking/"><div class='name'>networking</div><div class='badge'>2</div></a></li>
+    
+        <li><a class="flat-box" href="/categories/折腾/"><div class='name'>折腾</div><div class='badge'>1</div></a></li>
+    
+    </ul>
+    
+</div>
+</section>
+
+
+  
+<section class="m_widget tagcloud">
+    <div class="header"><i class="fa fa-tags" aria-hidden="true"></i>&nbsp;&nbsp;标签</div>
+    <div class='content'>
+        <a href="/tags/lua/" style="font-size: 14px; color: #999">+lua</a> <a href="/tags/Aria2/" style="font-size: 14px; color: #999">Aria2</a> <a href="/tags/Debian/" style="font-size: 14px; color: #999">Debian</a> <a href="/tags/Docker/" style="font-size: 14px; color: #999">Docker</a> <a href="/tags/NSURLProtol/" style="font-size: 14px; color: #999">NSURLProtol</a> <a href="/tags/Raspberry/" style="font-size: 14px; color: #999">Raspberry</a> <a href="/tags/Vim/" style="font-size: 14px; color: #999">Vim</a> <a href="/tags/iOS/" style="font-size: 14px; color: #999">iOS</a> <a href="/tags/ios/" style="font-size: 14px; color: #999">ios</a> <a href="/tags/network/" style="font-size: 14px; color: #999">network</a> <a href="/tags/networking/" style="font-size: 24px; color: #555">networking</a> <a href="/tags/tcp-ip/" style="font-size: 24px; color: #555">tcp/ip</a> <a href="/tags/upload/" style="font-size: 14px; color: #999">upload</a> <a href="/tags/xcode/" style="font-size: 14px; color: #999">xcode</a>
+    </div>
+</section>
+
+
+
+  
+    <section class="m_widget toc-wrapper">
+        <div class="header"><i class="fa fa-list" aria-hidden="true"></i>&nbsp;&nbsp;目录</div>
+        <div class='content'>
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#卸载原有的vim"><span class="toc-text">卸载原有的vim</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#下载源码包"><span class="toc-text">下载源码包</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#安装依赖"><span class="toc-text">安装依赖</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#编译Vim"><span class="toc-text">编译Vim</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#配置"><span class="toc-text">配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#编译"><span class="toc-text">编译</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#设置为默认编辑器"><span class="toc-text">设置为默认编辑器</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#确认"><span class="toc-text">确认</span></a></li></ol>
+        </div>
+    </section>
+
+
+
+
+      </aside>
+      <script>setLoadingBarProgress(60);</script>
+    </div>
+  </div>
+  <footer id="footer" class="clearfix">
+    <div class="social-wrapper">
+      
+        
+            <a href="mailto:lxyzk_sg@foxmail.com" class="social envelope"
+                target="_blank" rel="external">
+            <i class="fa fa-envelope"></i>
+            </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <br>
+    <div>博客内容遵循 <a target="_blank" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" class="licenses">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></div>
+    <div>本站使用 <a href="https://github.com/xaoxuu/hexo-theme-material-x" target="_blank" class="codename">Material-X</a> 作为主题，
+		总访问量为 <span id="busuanzi_value_site_pv"><i class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></i></span> 次。
+    </div>
+
+</footer>
+<!-- 根据页面mathjax变量决定是否加载MathJax数学公式js -->
+
+
+  <script>setLoadingBarProgress(80);</script>
+  <script src="//apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+<script src='//cdn.bootcss.com/node-waves/0.7.5/waves.min.js'></script>
+<script src="//cdn.bootcss.com/scrollReveal.js/3.3.2/scrollreveal.min.js"></script>
+<!-- 访问统计 -->
+<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+<script src="/js/jquery.fitvids.js"></script>
+<script>
+var GOOGLE_CUSTOM_SEARCH_API_KEY = "";
+var GOOGLE_CUSTOM_SEARCH_ENGINE_ID = "";
+var ALGOLIA_API_KEY = "";
+var ALGOLIA_APP_ID = "";
+var ALGOLIA_INDEX_NAME = "";
+var AZURE_SERVICE_NAME = "";
+var AZURE_INDEX_NAME = "";
+var AZURE_QUERY_KEY = "";
+var BAIDU_API_ID = "";
+var SEARCH_SERVICE = "hexo";
+var ROOT = "/"||"/";
+if(!ROOT.endsWith('/'))ROOT += '/';
+</script>
+<script src="/js/search.js"></script>
+<script src="/js/app.js"></script>
+
+
+    
+    
+    
+
+
+  <script>setLoadingBarProgress(100);</script>
+</body>
+</html>
