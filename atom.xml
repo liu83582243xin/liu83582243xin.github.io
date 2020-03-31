@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://lxyzk.github.io/"/>
-  <updated>2020-03-28T14:14:38.838Z</updated>
+  <updated>2020-03-31T06:23:32.667Z</updated>
   <id>http://lxyzk.github.io/</id>
   
   <author>
@@ -15,6 +15,32 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>debian_install_space_vim</title>
+    <link href="http://lxyzk.github.io/2020/03/31/debian-install-space-vim/"/>
+    <id>http://lxyzk.github.io/2020/03/31/debian-install-space-vim/</id>
+    <published>2020-03-31T06:22:32.000Z</published>
+    <updated>2020-03-31T06:23:32.667Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="配置NeoVim"><a href="#配置NeoVim" class="headerlink" title="配置NeoVim"></a>配置NeoVim</h2><p>NeoVim提供了”AppImage”形式的安装包，我们直接使用”AppImage”包，避免繁琐的依赖安装或编译。</p><a id="more"></a><h4 id="下载NeoVim"><a href="#下载NeoVim" class="headerlink" title="下载NeoVim"></a>下载NeoVim</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">curl -LO https://github.com/neovim/neovim/releases/download/stable/nvim.appimage</span><br><span class="line">chmod u+x nvim.appimage</span><br></pre></td></tr></table></figure><h4 id="运行Neovim"><a href="#运行Neovim" class="headerlink" title="运行Neovim"></a>运行Neovim</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./nvim.appimage</span><br></pre></td></tr></table></figure><p>如此，NeoVim安装完成</p><h2 id="配置SpaceVim"><a href="#配置SpaceVim" class="headerlink" title="配置SpaceVim"></a>配置SpaceVim</h2><p>执行以下代码：<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -sLf https://spacevim.org/install.sh | bash</span><br></pre></td></tr></table></figure></p><p>等到安装完成，再次运行</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./nvim.appimage</span><br></pre></td></tr></table></figure><p>再等待插件下载完成就配置完毕了</p>]]></content>
+    
+    <summary type="html">
+    
+      &lt;h2 id=&quot;配置NeoVim&quot;&gt;&lt;a href=&quot;#配置NeoVim&quot; class=&quot;headerlink&quot; title=&quot;配置NeoVim&quot;&gt;&lt;/a&gt;配置NeoVim&lt;/h2&gt;&lt;p&gt;NeoVim提供了”AppImage”形式的安装包，我们直接使用”AppImage”包，避免繁琐的依赖安装或编译。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="Vi" scheme="http://lxyzk.github.io/categories/Vi/"/>
+    
+    
+      <category term="Debian" scheme="http://lxyzk.github.io/tags/Debian/"/>
+    
+      <category term="Vim" scheme="http://lxyzk.github.io/tags/Vim/"/>
+    
+      <category term="+lua" scheme="http://lxyzk.github.io/tags/lua/"/>
+    
+  </entry>
   
   <entry>
     <title>URLProtocol导致上传进度回调丢失排查过程</title>

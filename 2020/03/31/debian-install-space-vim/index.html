@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   
-  <title>Tag: NSURLProtol | Xiangxin</title>
+  <title>debian_install_space_vim | Xiangxin</title>
   <meta name="description" content>
   <meta name="keywords" content>
   <meta name="HandheldFriendly" content="True">
@@ -12,13 +12,18 @@
   <link rel="shortcut icon" href="/">
   <link rel="alternate" href="/atom.xml" title="Xiangxin">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta property="og:type" content="website">
-<meta property="og:title" content="Xiangxin">
-<meta property="og:url" content="http://lxyzk.github.io/tags/NSURLProtol/index.html">
+  <meta name="description" content="配置NeoVimNeoVim提供了”AppImage”形式的安装包，我们直接使用”AppImage”包，避免繁琐的依赖安装或编译。">
+<meta name="keywords" content="Debian,Vim,+lua">
+<meta property="og:type" content="article">
+<meta property="og:title" content="debian_install_space_vim">
+<meta property="og:url" content="http://lxyzk.github.io/2020/03/31/debian-install-space-vim/index.html">
 <meta property="og:site_name" content="Xiangxin">
+<meta property="og:description" content="配置NeoVimNeoVim提供了”AppImage”形式的安装包，我们直接使用”AppImage”包，避免繁琐的依赖安装或编译。">
 <meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2020-03-31T06:23:32.667Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Xiangxin">
+<meta name="twitter:title" content="debian_install_space_vim">
+<meta name="twitter:description" content="配置NeoVimNeoVim提供了”AppImage”形式的安装包，我们直接使用”AppImage”包，避免繁琐的依赖安装或编译。">
 
   <link rel="shortcut icon" href>
   <link rel="icon" href>
@@ -121,67 +126,121 @@
   <div class="l_body">
     <div class='container clearfix'>
       <div class='l_main'>
-        
-    <script>
-        window.subData= { title:'tag : NSURLProtol'}
-    </script>
-
-
-<section class="post-list">
-    
-    
-        <div class='post-wrapper'>
-    <article class="post reveal">
-    <section class="meta">
-        <h2 class="title">
-            <a href="/2020/01/02/ns-url-protocol/">
-                
-                    URLProtocol导致上传进度回调丢失排查过程
-                
-            </a>
-        </h2>
+        <article id="post-debian-install-space-vim" class="post white-box article-type-post" itemscope itemprop="blogPost">
+    <section class='meta'>
+        <h1 class="title">
+            
+                debian_install_space_vim
+            
+        </h1>
         <time>
-            2020-01-02 星期四
+            2020-03-31 星期二&nbsp;&nbsp;
+            <i class="fa fa-eye" aria-hidden="true"></i>&nbsp;<span id="busuanzi_value_page_pv"><i class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></i></span>
         </time>
         
     
     <div class='cats'>
-        <a href="/categories/iOS/">iOS</a>
+        <a href="/categories/Vi/">Vi</a>
     </div>
 
 
     </section>
 
     <section class="article typo">
-        <h2 id="问题发现"><a href="#问题发现" class="headerlink" title="问题发现"></a>问题发现</h2><p>最近开发时候发现了一个奇怪的问题，在使用iOS的<code>NSURLSessionManager</code>进行文件上传时候，回调方法</p>
-<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">- (<span class="keyword">void</span>)URLSession:(<span class="built_in">NSURLSession</span> *)session</span><br><span class="line">              task:(<span class="built_in">NSURLSessionTask</span> *)task</span><br><span class="line">   didSendBodyData:(int64_t)bytesSent</span><br><span class="line">    totalBytesSent:(int64_t)totalBytesSent</span><br><span class="line">totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend;</span><br></pre></td></tr></table></figure>
-<p>无论如何也不会被调用。</p>
-        
-            <div class="readmore">
-                <a href="/2020/01/02/ns-url-protocol/" class="flat-box">READ MORE</a>
-            </div>
-        
 
-        
-            <div class="full-width auto-padding tags">
-                
-                    <a href="/tags/iOS/"><i class="fa fa-tag"></i>&nbsp;&nbsp;iOS</a>
-                
-                    <a href="/tags/NSURLProtol/"><i class="fa fa-tag"></i>&nbsp;&nbsp;NSURLProtol</a>
-                
-                    <a href="/tags/upload/"><i class="fa fa-tag"></i>&nbsp;&nbsp;upload</a>
-                
-                    <a href="/tags/network/"><i class="fa fa-tag"></i>&nbsp;&nbsp;network</a>
-                
-            </div>
-        
-    </section>
-</article>
+        <div class="article-entry" itemprop="articleBody">
+            <h2 id="配置NeoVim"><a href="#配置NeoVim" class="headerlink" title="配置NeoVim"></a>配置NeoVim</h2><p>NeoVim提供了”AppImage”形式的安装包，我们直接使用”AppImage”包，避免繁琐的依赖安装或编译。</p>
+<a id="more"></a>
+<h4 id="下载NeoVim"><a href="#下载NeoVim" class="headerlink" title="下载NeoVim"></a>下载NeoVim</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">curl -LO https://github.com/neovim/neovim/releases/download/stable/nvim.appimage</span><br><span class="line">chmod u+x nvim.appimage</span><br></pre></td></tr></table></figure>
+<h4 id="运行Neovim"><a href="#运行Neovim" class="headerlink" title="运行Neovim"></a>运行Neovim</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./nvim.appimage</span><br></pre></td></tr></table></figure>
+<p>如此，NeoVim安装完成</p>
+<h2 id="配置SpaceVim"><a href="#配置SpaceVim" class="headerlink" title="配置SpaceVim"></a>配置SpaceVim</h2><p>执行以下代码：<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -sLf https://spacevim.org/install.sh | bash</span><br></pre></td></tr></table></figure></p>
+<p>等到安装完成，再次运行</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./nvim.appimage</span><br></pre></td></tr></table></figure>
+<p>再等待插件下载完成就配置完毕了</p>
 
         </div>
-    
-</section>
 
+        
+            <div class="article-tags tags">
+                
+                    <a href="/tags/Debian/"><i class="fa fa-tag"></i>&nbsp;&nbsp;Debian</a>
+                
+                    <a href="/tags/Vim/"><i class="fa fa-tag"></i>&nbsp;&nbsp;Vim</a>
+                
+                    <a href="/tags/lua/"><i class="fa fa-tag"></i>&nbsp;&nbsp;+lua</a>
+                
+            </div>
+        
+
+        
+            <div class="art-item-footer">
+                
+                
+                    <span class="art-item-right">
+                        <a href="/2020/01/02/ns-url-protocol/" rel="next" title="URLProtocol导致上传进度回调丢失排查过程">
+                            URLProtocol导致上传进度回调丢失排查过程
+                        </a>&nbsp;
+                        <i class="fa fa-chevron-right" aria-hidden="true"></i>
+                    </span>
+                
+            </div>
+        
+
+    </section>
+
+</article>
+
+<br>
+
+<!-- 显示推荐文章和评论 -->
+
+    <article class="post white-box article-type-post>">
+        <section class="article typo">
+
+            
+                
+
+    <div class="recommended_posts">
+        <h4><i class="fa fa-bookmark" aria-hidden="true"></i>&nbsp;&nbsp;&nbsp;你可能感兴趣的文章</h4>
+        <ul>
+            
+                <li><a href="http://lxyzk.github.io/2020/01/02/ns-url-protocol/">URLProtocol导致上传进度回调丢失排查过程</a></li>
+            
+                <li><a href="http://lxyzk.github.io/2019/08/11/debug-new-device-on-old-xcode/">使用Xcode10调试iOS13设备</a></li>
+            
+                <li><a href="http://lxyzk.github.io/2019/05/28/compile_vim_debian/">Debian源码安装Vim</a></li>
+            
+                <li><a href="http://lxyzk.github.io/2018/08/25/raspberry-pi-aria/">在树莓派上配置下载机</a></li>
+            
+                <li><a href="http://lxyzk.github.io/2018/04/17/tcp-ip-note/">TCP/IP 笔记</a></li>
+            
+        </ul>
+    </div>
+    <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+
+
+            
+
+            
+
+                
+
+                
+
+                
+            
+
+        </section>
+    </article>
+
+
+<script>
+    window.subData = {
+        title: 'debian_install_space_vim',
+        tools: true
+    }
+</script>
 
 
       </div>
@@ -220,6 +279,13 @@
 
 
   
+    <section class="m_widget toc-wrapper">
+        <div class="header"><i class="fa fa-list" aria-hidden="true"></i>&nbsp;&nbsp;目录</div>
+        <div class='content'>
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#配置NeoVim"><span class="toc-text">配置NeoVim</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#下载NeoVim"><span class="toc-text">下载NeoVim</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#运行Neovim"><span class="toc-text">运行Neovim</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#配置SpaceVim"><span class="toc-text">配置SpaceVim</span></a></li></ol>
+        </div>
+    </section>
+
 
 
 
@@ -282,6 +348,10 @@ if(!ROOT.endsWith('/'))ROOT += '/';
 <script src="/js/search.js"></script>
 <script src="/js/app.js"></script>
 
+
+    
+    
+    
 
 
   <script>setLoadingBarProgress(100);</script>

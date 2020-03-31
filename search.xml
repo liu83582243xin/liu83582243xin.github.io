@@ -3,6 +3,31 @@
   
     
     <entry>
+      <title>debian_install_space_vim</title>
+      <link href="/2020/03/31/debian-install-space-vim/"/>
+      <url>/2020/03/31/debian-install-space-vim/</url>
+      <content type="html"><![CDATA[<h2 id="配置NeoVim"><a href="#配置NeoVim" class="headerlink" title="配置NeoVim"></a>配置NeoVim</h2><p>NeoVim提供了”AppImage”形式的安装包，我们直接使用”AppImage”包，避免繁琐的依赖安装或编译。</p><a id="more"></a><h4 id="下载NeoVim"><a href="#下载NeoVim" class="headerlink" title="下载NeoVim"></a>下载NeoVim</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">curl -LO https://github.com/neovim/neovim/releases/download/stable/nvim.appimage</span><br><span class="line">chmod u+x nvim.appimage</span><br></pre></td></tr></table></figure><h4 id="运行Neovim"><a href="#运行Neovim" class="headerlink" title="运行Neovim"></a>运行Neovim</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./nvim.appimage</span><br></pre></td></tr></table></figure><p>如此，NeoVim安装完成</p><h2 id="配置SpaceVim"><a href="#配置SpaceVim" class="headerlink" title="配置SpaceVim"></a>配置SpaceVim</h2><p>执行以下代码：<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -sLf https://spacevim.org/install.sh | bash</span><br></pre></td></tr></table></figure></p><p>等到安装完成，再次运行</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./nvim.appimage</span><br></pre></td></tr></table></figure><p>再等待插件下载完成就配置完毕了</p>]]></content>
+      
+      <categories>
+          
+          <category> Vi </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Debian </tag>
+            
+            <tag> Vim </tag>
+            
+            <tag> +lua </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
       <title>URLProtocol导致上传进度回调丢失排查过程</title>
       <link href="/2020/01/02/ns-url-protocol/"/>
       <url>/2020/01/02/ns-url-protocol/</url>
